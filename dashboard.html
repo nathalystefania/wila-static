@@ -10,26 +10,891 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Work+Sans:ital,wght@0,100..900;1,100..900&family=Material+Symbols+Outlined"
         rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
     <link rel="stylesheet" href="./src/styles.scss">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 
-<body class="bg-[#f9f9f9] min-h-screen text-primary-950 font-sans">
+<body class="bg-[#f4f6f8] min-h-screen text-primary-950 font-sans">
 
-    <div class="flex min-h-full">
-        <!-- LEFT SIDEBAR -->
-        <div
-            class="flex flex-col justify-between h-screen w-1/4 max-w-[250px] bg-primary-950 fixed left-0 top-0 text-white z-30">
-            <div>
-                <img src="./src/assets/images/logo-wila.svg" alt="Logo Wila" class="pl-7 pr-8 mt-8 mb-2 w-full" />
+    <!-- TOP HEADER / NAVBAR -->
+    <header
+        class="bg-[#0d193c] text-white py-4 px-6 md:px-8 flex flex-col lg:flex-row justify-between items-center gap-4 shadow-md z-30">
+        <!-- Logo and dynamic titles -->
+        <div class="flex items-center gap-4">
+            <img src="./src/assets/images/logo-wila.svg" alt="Logo Wila" class="h-8 cursor-pointer"
+                onclick="showGen()" />
+            <!-- <div class="border-l border-white/20 pl-4">
+                <h1 id="TTL" class="text-white font-bold text-lg leading-tight">Monitor de escobillas</h1>
+                <div id="SUB" class="text-sm text-gray-900 font-medium">Cargando...</div>
+            </div> -->
+        </div>
 
+        <!-- Center controls (Simulation info) -->
+        <div class="flex flex-wrap items-center gap-4 text-sm font-semibold">
+            <!-- Sim progress -->
+            <div class="flex items-center gap-2 bg-[#1b2b5a] px-3 py-1.5 rounded-lg border border-white/10">
+                <span class="material-symbols-outlined text-[16px] text-gray-900">sync</span>
+                <span>Próx. med.:</span>
+                <!-- progress bar container -->
+                <div class="w-16 bg-[#0d193c] rounded-full h-1.5 overflow-hidden">
+                    <div id="SPF" class="bg-[#4c86ff] h-1.5 rounded-full transition-all duration-300" style="width: 0%">
+                    </div>
+                </div>
+                <span id="SCD" class="font-mono text-white">--:--</span>
+                <button
+                    class="ml-2 px-2 py-0.5 bg-primary-300 hover:bg-primary-400 text-primary rounded text-base uppercase font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                    onclick="toggleSim()">
+                    <span class="material-symbols-outlined text-base font-bold" id="SICO">pause</span>
+                    <span id="SLBL">Pausar</span>
+                </button>
+            </div>
+
+            <!-- Active alarms counter -->
+            <div id="ALARM_BAR"
+                class="flex items-center gap-2 bg-[#1b2b5a] px-3 py-1.5 rounded-lg border border-white/10">
+                <span class="material-symbols-outlined text-[16px] text-gray-900">notifications</span>
+                <span>Alarmas:</span>
+                <span id="ALM_P1" class="px-2 py-0.5 bg-magenta-600 text-white rounded text-base font-bold"
+                    style="background:#ff00ff; display:none">P1: <span id="ALM_P1_N">0</span></span>
+                <span id="ALM_P2" class="px-2 py-0.5 bg-red-600 text-white rounded text-base font-bold"
+                    style="background:#c83e3a; display:none">P2: <span id="ALM_P2_N">0</span></span>
+                <span id="ALM_P3" class="px-2 py-0.5 bg-warning-500 text-gray-900 rounded text-base font-bold"
+                    style="background:#f2b705; display:none">P3: <span id="ALM_P3_N">0</span></span>
+                <span id="ALM_OK" class="text-gray-900 font-medium">Sin alarmas</span>
             </div>
         </div>
 
-        <!-- RIGHT CONTENT -->
-        <div class="wrap-content w-full p-8 flex flex-col justify-between min-h-screen ml-auto relative">
-            algo
+        <!-- Right action badges & details -->
+        <div class="flex flex-wrap items-center gap-4 text-sm font-semibold">
+            <!-- Operator Badge -->
+            <!-- <div id="ROLE_BADGE"
+                class="flex items-center gap-2 bg-[#1b2b5a] px-3 py-1.5 rounded-lg border border-white/10">
+                <span class="material-symbols-outlined text-[16px] text-gray-900">account_circle</span>
+                <span>Operador</span>
+            </div> -->
+
+            <!-- Config buttons -->
+            <div id="BTN_CFG_WRAP" class="flex items-center">
+                <button
+                    class="px-3 py-1.5 bg-[#1b2b5a] hover:bg-[#253975] text-white border border-white/10 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
+                    onclick="openRoleModal('cfg')">
+                    <span class="material-symbols-outlined text-sm">construction</span> Config. Planta
+                </button>
+            </div>
+            <div id="BTN_CFG_LOGOUT" style="display:none">
+                <button
+                    class="px-3 py-1.5 bg-red-900/50 hover:bg-red-800/60 text-white border border-error-500/20 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
+                    onclick="doLogout('cfg')">
+                    <span class="material-symbols-outlined text-sm">logout</span> Salir Config.
+                </button>
+            </div>
+            <div id="BTN_ADMIN_WRAP" class="flex items-center">
+                <button
+                    class="btn-secondary"
+                    onclick="openRoleModal('admin')">
+                    <span class="material-symbols-outlined text-sm">lock</span> Admin
+                </button>
+            </div>
+            <div id="BTN_ADMIN_LOGOUT" style="display:none">
+                <button
+                    class="px-3 py-1.5 bg-red-900/50 hover:bg-red-800/60 text-white border border-error-500/20 rounded-lg flex items-center gap-1 cursor-pointer transition-colors"
+                    onclick="doLogout('admin')">
+                    <span class="material-symbols-outlined text-sm">logout</span> Salir Admin
+                </button>
+            </div>
+
+            <!-- MQTT Status Chip -->
+            <!-- <div id="MQTT_CHIP"
+                class="flex items-center gap-1.5 bg-[#1b2b5a] hover:bg-[#253975] px-3 py-1.5 rounded-lg border border-white/10 cursor-pointer transition-all"
+                onclick="toggleMqttPanel()" title="Configurar MQTT">
+                <span class="material-symbols-outlined text-[16px] text-gray-900" id="MQTT_ICO">sensors</span>
+                <span id="MQTT_ST" class="text-gray-900">MQTT off</span>
+            </div> -->
+
+            <!-- Timestamp -->
+            <!-- <div class="text-gray-900 font-mono flex items-center gap-1">
+                <span class="material-symbols-outlined text-[14px]">schedule</span>
+                <span id="TS">--/--/-- --:--</span>
+            </div> -->
+        </div>
+    </header>
+
+    <!-- MQTT CONFIG PANEL -->
+    <div id="MQTT_PANEL" style="display:none"
+        class="bg-[#1b2b5a] border-t border-white/10 px-6 md:px-8 py-4 text-white">
+        <div class="flex flex-wrap items-end gap-4">
+            <div
+                class="text-sm font-bold text-[#4c86ff] uppercase tracking-wider self-center border-l-2 border-[#4c86ff] pl-2">
+                MQTT &middot; Mosquitto
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-sm text-gray-900 uppercase tracking-wider">Host / IP Raspberry</label>
+                <input id="MQ_HOST"
+                    class="bg-[#0d193c] border border-white/10 rounded px-2.5 py-1.5 text-sm text-white outline-none w-40"
+                    value="localhost" placeholder="192.168.1.x">
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-sm text-gray-900 uppercase tracking-wider">Puerto WS</label>
+                <input id="MQ_PORT"
+                    class="bg-[#0d193c] border border-white/10 rounded px-2.5 py-1.5 text-sm text-white outline-none w-20"
+                    value="9001" placeholder="9001">
+            </div>
+            <div class="flex flex-col gap-1">
+                <label class="text-sm text-gray-900 uppercase tracking-wider">Topic base (ESP)</label>
+                <input id="MQ_TOPIC"
+                    class="bg-[#0d193c] border border-white/10 rounded px-2.5 py-1.5 text-sm text-white outline-none w-48"
+                    value="wila/sensores" placeholder="wila/sensores">
+            </div>
+            <button
+                class="px-3 py-1.5 bg-success-600 hover:bg-success-700 text-white rounded text-sm font-bold transition-all cursor-pointer flex items-center gap-1 border-none"
+                onclick="mqttConnect()" id="MQ_BTN_CONN">
+                <span class="material-symbols-outlined text-sm">power</span> Conectar
+            </button>
+            <button
+                class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-bold transition-all cursor-pointer flex items-center gap-1 border-none"
+                onclick="mqttDisconnect()" id="MQ_BTN_DISC" style="display:none">
+                <span class="material-symbols-outlined text-sm">power_off</span> Desconectar
+            </button>
+            <div class="flex-grow min-w-[200px]">
+                <div class="text-sm text-gray-900 uppercase tracking-wider mb-1">Último mensaje</div>
+                <div id="MQ_LAST"
+                    class="text-sm text-gray-900 font-mono overflow-hidden text-ellipsis whitespace-nowrap max-w-lg">
+                    &mdash;</div>
+            </div>
+        </div>
+        <div class="mt-3 text-base text-gray-900 leading-relaxed">
+            <strong class="text-gray-900">Formato JSON esperado desde la ESP:</strong>
+            <code class="bg-[#0d193c] px-1.5 py-0.5 rounded text-[#4c86ff]">{"mm":65.2,"temp":78,"batt":82}</code>
+            &nbsp;&middot;&nbsp; Topic: <code
+                class="bg-[#0d193c] px-1.5 py-0.5 rounded text-gray-900">wila/sensores</code>
+            &nbsp;&middot;&nbsp; Mosquitto requiere <strong class="text-gray-900">listener 9001 websockets</strong> en
+            mosquitto.conf
         </div>
     </div>
+
+    <!-- GENERAL VIEW: `#VGEN` -->
+    <div id="VGEN">
+        <!-- MAIN DASHBOARD CONTENT -->
+        <main class="p-6 md:p-8 max-w-[1600px] mx-auto flex flex-col gap-6">
+
+            <!-- KPI SUMMARY ROW -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Card 1: Total -->
+                <div
+                    class="bg-white rounded-lg shadow-sm border-left border-primary border-l-[6px] p-5 flex justify-between items-center">
+                    <div class="flex flex-col">
+                        <span class="text-l4 font-bold text-primary-950 uppercase tracking-wider mb-1">Escobillas</span>
+                        <span class="text-4xl font-extrabold text-primary leading-none" id="G_TOT">--</span>
+                        <span class="text-l4 font-semibold text-primary-950 uppercase tracking-wide mt-1">Total</span>
+                    </div>
+                    <div class="flex items-center justify-center w-16 h-16 rounded-full bg-[#ebf7ff] text-[#0d193c]">
+                        <span class="material-symbols-outlined !text-[36px]"
+                            style="font-variation-settings: 'FILL' 1">info</span>
+                    </div>
+                </div>
+
+                <!-- Card 2: Operativas (Green) -->
+                <div
+                    class="bg-white rounded-lg shadow-sm border-left border-success-500 border-l-[6px] p-5 flex justify-between items-center">
+                    <div class="flex flex-col">
+                        <span class="text-l4 font-bold text-success-600 uppercase tracking-wider mb-1">Escobillas</span>
+                        <span class="text-4xl font-extrabold text-success-600 leading-none" id="G_GRN">--</span>
+                        <span class="text-l4 font-semibold text-success-600 uppercase tracking-wide mt-1">Total</span>
+                    </div>
+                    <div class="flex items-center justify-center w-16 h-16 rounded-full bg-success-50 text-success-600">
+                        <span class="material-symbols-outlined !text-[36px]"
+                            style="font-variation-settings: 'FILL' 1">check_circle</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: Warning (warning) -->
+                <div
+                    class="bg-white rounded-lg shadow-sm border-left border-warning-500 border-l-[6px] p-5 flex justify-between items-center">
+                    <div class="flex flex-col">
+                        <span class="text-l4 font-bold text-warning-600 uppercase tracking-wider mb-1">Escobillas</span>
+                        <span class="text-4xl font-extrabold text-warning-600 leading-none" id="G_YEL">--</span>
+                        <span class="text-l4 font-semibold text-warning-600 uppercase tracking-wide mt-1">Total</span>
+                    </div>
+                    <div class="flex items-center justify-center w-16 h-16 rounded-full bg-warning-50 text-warning-600">
+                        <span class="material-symbols-outlined !text-[36px]"
+                            style="font-variation-settings: 'FILL' 1">warning</span>
+                    </div>
+                </div>
+
+                <!-- Card 4: Critical (Red) -->
+                <div
+                    class="bg-white rounded-lg shadow-sm border-left border-error-500 border-l-[6px] p-5 flex justify-between items-center">
+                    <div class="flex flex-col">
+                        <span class="text-l4 font-bold text-error-600 uppercase tracking-wider mb-1">Escobillas</span>
+                        <span class="text-4xl font-extrabold text-error-600 leading-none" id="G_RED">--</span>
+                        <span class="text-l4 font-semibold text-error-600 uppercase tracking-wide mt-1">Total</span>
+                    </div>
+                    <div class="flex items-center justify-center w-16 h-16 rounded-full bg-error-50 text-error-600">
+                        <span class="material-symbols-outlined !text-[36px]">timer</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL CONFIG PLANTA (Configurador) -->
+            <section class="sec bg-white rounded-lg border border-gray-200 p-6 flex flex-col gap-4 shadow-sm"
+                id="CFG_PLANT_PANEL" style="display:none">
+                <div class="flex justify-between items-center pb-4 border-b border-gray-100">
+                    <div class="flex items-center gap-2 text-[#0d193c] font-bold text-lg">
+                        <span class="material-symbols-outlined text-[#4c86ff]">construction</span>
+                        Configuración de planta
+                    </div>
+                    <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                        Configurador
+                    </span>
+                </div>
+
+                <div class="flex flex-col gap-6">
+                    <div class="plant-section bg-gray-50/50 p-4 border border-gray-150 rounded-lg flex flex-col gap-4">
+                        <div class="text-[#0d193c] font-bold text-sm flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">badge</span> Datos generales
+                        </div>
+                        <div class="cg3">
+                            <div class="fr">
+                                <label>Nombre compañía minera</label>
+                                <input class="inp" id="PC_COMPANY" placeholder="ej: Codelco">
+                            </div>
+                            <div class="fr">
+                                <label>Faena / Ubicación</label>
+                                <input class="inp" id="PC_FAENA" placeholder="ej: División El Teniente">
+                            </div>
+                            <div class="fr">
+                                <label>Nombre proceso</label>
+                                <input class="inp" id="PC_PROCESS" placeholder="ej: Planta concentradora">
+                            </div>
+                        </div>
+                        <div class="flex justify-end">
+                            <button class="btn ok" onclick="savePlantInfo()">
+                                Guardar datos generales
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="plant-section bg-gray-50/50 p-4 border border-gray-150 rounded-lg flex flex-col gap-4">
+                        <div class="text-[#0d193c] font-bold text-sm flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">settings</span> Motores
+                        </div>
+                        <div id="MOTOR_LIST" class="flex flex-col gap-3"></div>
+                        <button class="btn border border-primary text-primary" onclick="addMotorRow()">
+                            + Agregar motor
+                        </button>
+                        <div class="flex justify-end">
+                            <button class="btn ok" onclick="saveMotors()">
+                                Guardar motores
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="plant-section bg-gray-50/50 p-4 border border-gray-150 rounded-lg flex flex-col gap-4">
+                        <div class="text-[#0d193c] font-bold text-sm flex items-center gap-1">
+                            <span class="material-symbols-outlined text-sm">group</span> Técnicos operativos
+                        </div>
+                        <div id="TECH_LIST" class="flex flex-col gap-3"></div>
+                        <button class="btn border border-primary text-primary" onclick="addTechRow()">
+                            + Agregar técnico
+                        </button>
+                        <div class="flex justify-end">
+                            <button class="btn ok" onclick="saveTechs()">
+                                Guardar técnicos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL CONFIG UMBRALES (Admin) -->
+            <section class="sec bg-white rounded-lg border border-gray-200 p-6 flex flex-col gap-4 shadow-sm"
+                id="CFG_PANEL" style="display:none">
+                <div class="flex justify-between items-center pb-4 border-b border-gray-150">
+                    <div class="flex items-center gap-2 text-primary font-bold text-lg">
+                        <span class="material-symbols-outlined text-warning-500">settings</span>
+                        Configuración de umbrales
+                    </div>
+                    <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold bg-warning-50 text-warning-700 border border-warning-200">
+                        Administrador
+                    </span>
+                </div>
+
+                <div class="flex flex-col gap-6">
+                    <div class="bg-gray-50/50 p-4 border border-gray-150 rounded-lg flex flex-col gap-4">
+                        <div class="text-[#0d193c] font-bold text-sm uppercase tracking-wider">Desgaste</div>
+                        <div class="cg3">
+                            <div class="ci">
+                                <label>Longitud nominal (mm)</label>
+                                <input type="range" id="S_NOM" min="40" max="120" value="80" step="5">
+                                <div class="cv"><span id="SV_NOM">80</span> mm &middot; Vida útil <span
+                                        id="SV_UL">44</span> mm</div>
+                            </div>
+                            <div class="ci">
+                                <label>Umbral alerta (%)</label>
+                                <input type="range" id="S_THY" min="40" max="80" value="60" step="5">
+                                <div class="cv"><span id="SV_THY">60</span>%</div>
+                            </div>
+                            <div class="ci">
+                                <label>Umbral crítico (%)</label>
+                                <input type="range" id="S_THR" min="10" max="40" value="30" step="5">
+                                <div class="cv"><span id="SV_THR">30</span>%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50/50 p-4 border border-gray-150 rounded-lg flex flex-col gap-4">
+                        <div class="text-[#0d193c] font-bold text-sm uppercase tracking-wider">Temperatura &middot;
+                            Batería</div>
+                        <div class="cg4">
+                            <div class="ci">
+                                <label>Alerta temp. (°C)</label>
+                                <input type="range" id="S_TTY" min="60" max="100" value="80" step="5">
+                                <div class="cv"><span id="SV_TTY">80</span> °C</div>
+                            </div>
+                            <div class="ci">
+                                <label>Crítico temp. (°C)</label>
+                                <input type="range" id="S_TTR" min="90" max="130" value="110" step="5">
+                                <div class="cv"><span id="SV_TTR">110</span> °C</div>
+                            </div>
+                            <div class="ci">
+                                <label>Batería baja (%)</label>
+                                <input type="range" id="S_TB" min="15" max="40" value="20" step="5">
+                                <div class="cv"><span id="SV_TB">20</span>%</div>
+                            </div>
+                            <div class="ci">
+                                <label>Descarga batería (%/día)</label>
+                                <input type="range" id="S_BD" min="0.5" max="5" value="1" step="0.5">
+                                <div class="cv"><span id="SV_BD">1</span> %/día</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50/50 p-4 border border-gray-150 rounded-lg flex flex-col gap-4">
+                        <div class="text-[#0d193c] font-bold text-sm uppercase tracking-wider">Señal &middot; Simulación
+                        </div>
+                        <div class="cg3">
+                            <div class="ci">
+                                <label>Umbral espera señal (horas)</label>
+                                <input type="range" id="S_SN" min="4" max="12" value="8" step="1">
+                                <div class="cv">Amarillo &gt;4h &middot; Rojo &gt;<span id="SV_SN">8</span>h</div>
+                            </div>
+                            <div class="ci">
+                                <label>Intervalo visual (min)</label>
+                                <input type="range" id="S_INT" min="5" max="30" value="20" step="5">
+                                <div class="cv"><span id="SV_INT">20</span> min</div>
+                            </div>
+                            <div class="ci">
+                                <label>Ciclo real entre mediciones</label>
+                                <select class="sel" id="S_CYC" onchange="updCyc()" style="margin-top:4px">
+                                    <option value="0.5">30 minutos</option>
+                                    <option value="1">1 hora</option>
+                                    <option value="1.5">1 hora 30 min</option>
+                                    <option value="2">2 horas</option>
+                                </select>
+                                <div class="cv" id="SV_CYC">30 min / ciclo</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TWO-COLUMN LAYOUT -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                <!-- LEFT COLUMN: Estado de motores -->
+                <section
+                    class="lg:col-span-7 xl:col-span-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col">
+                    <!-- Header -->
+                    <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-gray-100">
+                        <div class="flex items-center gap-2 text-[#0d193c] font-bold text-xl">
+                            <span
+                                class="material-symbols-outlined text-[#0d193c] align-middle !text-[32px]">settings</span>
+                            Estado de motores <span id="G_MOTOR_COUNT"
+                                class="text-gray-900 font-medium text-sm ml-2">(-- motores)</span>
+                        </div>
+                        <button id="BTN_TOGGLE_PARAMS" onclick="toggleParametersMetrics()"
+                            class="px-4 py-4 border border-[#0d193c] text-[#0d193c] font-bold text-lg tracking-wider rounded hover:bg-[#0d193c] hover:text-white transition-colors cursor-pointer bg-white"
+                            aria-expanded="false">
+                            VER PARÁMETROS DE OPERACIÓN
+                        </button>
+                    </div>
+
+                    <!-- Parameters Metrics Grid -->
+                    <div id="PARAM_METRICS_GRID" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6" style="display:none">
+                        <!-- Metric 1 -->
+                        <div
+                            class="bg-white rounded border-top border-gray-200 p-4 border-t-4 border-primary flex flex-col justify-between shadow-sm">
+                            <div class="text-lg/6 font-semibold text-[#0d193c]">Longitud nominal</div>
+                            <div class="text-2xl font-extrabold text-[#0d193c] mt-auto flex items-baseline gap-1">
+                                <span id="VAL_NOM">80</span> <span class="text-sm font-bold text-[#0d193c]">MM</span>
+                            </div>
+                        </div>
+                        <!-- Metric 2 -->
+                        <div
+                            class="bg-white rounded border-top border-gray-200 p-4 border-t-4 border-primary flex flex-col justify-between shadow-sm">
+                            <div class="text-lg/6 font-semibold text-[#0d193c]">Vida útil</div>
+                            <div class="text-2xl font-extrabold text-[#0d193c] mt-auto flex items-baseline gap-1"
+                                id="VAL_UL">
+                                44 <span class="text-sm font-bold text-[#0d193c]">MM (55%)</span>
+                            </div>
+                        </div>
+                        <!-- Metric 3 -->
+                        <div
+                            class="bg-white rounded border-top border-gray-200 p-4 border-t-4 border-primary flex flex-col justify-between shadow-sm">
+                            <div class="text-lg/6 font-semibold text-[#0d193c]">Umbral alerta desgaste</div>
+                            <div class="text-2xl font-extrabold text-[#0d193c] mt-auto flex items-baseline gap-1"
+                                id="VAL_THY">
+                                48 <span class="text-sm font-bold text-[#0d193c]">MM (60%)</span>
+                            </div>
+                        </div>
+                        <!-- Metric 4 -->
+                        <div
+                            class="bg-white rounded border-top border-gray-200 p-4 border-t-4 border-primary flex flex-col justify-between shadow-sm">
+                            <div class="text-lg/6 font-semibold text-[#0d193c]">Umbral crítico desgaste</div>
+                            <div class="text-2xl font-extrabold text-[#0d193c] mt-auto flex items-baseline gap-1"
+                                id="VAL_THR">
+                                24 <span class="text-sm font-bold text-[#0d193c]">MM (30%)</span>
+                            </div>
+                        </div>
+                        <!-- Metric 5 -->
+                        <div
+                            class="bg-white rounded border-top border-gray-200 p-4 border-t-4 border-primary flex flex-col justify-between shadow-sm">
+                            <div class="text-lg/6 font-semibold text-[#0d193c]">Alerta temperatura</div>
+                            <div class="text-2xl font-extrabold text-[#0d193c] mt-auto flex items-baseline gap-1">
+                                <span id="VAL_TTY">80</span> <span class="text-sm font-bold text-[#0d193c]">°C</span>
+                            </div>
+                        </div>
+                        <!-- Metric 6 -->
+                        <div
+                            class="bg-white rounded border-top border-gray-200 p-4 border-t-4 border-primary flex flex-col justify-between shadow-sm">
+                            <div class="text-lg/6 font-semibold text-[#0d193c]">Crítico temperatura</div>
+                            <div class="text-2xl font-extrabold text-[#0d193c] mt-auto flex items-baseline gap-1">
+                                <span id="VAL_TTR">110</span> <span class="text-sm font-bold text-[#0d193c]">°C</span>
+                            </div>
+                        </div>
+                        <!-- Metric 7 -->
+                        <div
+                            class="bg-white rounded border-top border-gray-200 p-4 border-t-4 border-primary flex flex-col justify-between shadow-sm">
+                            <div class="text-lg/6 font-semibold text-[#0d193c]">Batería baja</div>
+                            <div class="text-2xl font-extrabold text-[#0d193c] mt-auto flex items-baseline gap-1">
+                                <span id="VAL_TB">20</span> <span class="text-sm font-bold text-[#0d193c]">%</span>
+                            </div>
+                        </div>
+                        <!-- Metric 8 -->
+                        <div
+                            class="bg-white rounded border-top border-gray-200 p-4 border-t-4 border-primary flex flex-col justify-between shadow-sm">
+                            <div class="text-sm font-bold text-[#0d193c] uppercase tracking-wider leading-tight">
+                                Esperando señal</div>
+                            <div class="text-2xl font-extrabold text-[#0d193c] mt-auto flex items-baseline gap-1">
+                                &lt; <span id="VAL_SN">8</span> <span class="text-sm font-bold text-[#0d193c]">H SIN
+                                    SEÑAL</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Motors Table -->
+                    <div class="overflow-x-auto mt-6">
+                        <table class="w-full text-left border-collapse min-w-[650px]">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-900">
+                                    <th
+                                        class="py-3 px-4 font-semibold text-lg tracking-wider border-b border-gray-200 rounded-l">
+                                        Motor</th>
+                                    <th class="py-3 px-4 font-semibold text-lg tracking-wider border-b border-gray-200">
+                                        Promedio MM</th>
+                                    <th class="py-3 px-4 font-semibold text-lg tracking-wider border-b border-gray-200">
+                                        Desgaste</th>
+                                    <th
+                                        class="py-3 px-4 font-semibold text-lg tracking-wider border-b border-gray-200 text-center">
+                                        Temp. máx</th>
+                                    <th
+                                        class="py-3 px-4 font-semibold text-lg tracking-wider border-b border-gray-200 text-center">
+                                        Batería min.</th>
+                                    <th
+                                        class="py-3 px-4 font-semibold text-lg tracking-wider border-b border-gray-200 text-center">
+                                        Alarmas</th>
+                                    <th
+                                        class="py-3 px-4 font-semibold text-lg tracking-wider border-b border-gray-200 rounded-r text-right">
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="" id="G_MTBL">
+                                <!-- Rendered dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- RIGHT COLUMN -->
+                <div class="lg:col-span-5 xl:col-span-4 flex flex-col gap-6">
+                    <!-- Alertas recientes -->
+                    <section class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col">
+                        <!-- Header -->
+                        <div class="flex justify-between items-center pb-4 border-b border-gray-100">
+                            <div class="flex items-center gap-2 text-[#0d193c] font-bold text-xl">
+                                <span
+                                    class="material-symbols-outlined text-[#0d193c] align-middle !text-[32px]">notifications</span>
+                                Alertas recientes
+                            </div>
+                            <button
+                                class="px-3 py-1.5 border border-[#0d193c] text-[#0d193c] font-bold text-sm tracking-wider rounded hover:bg-[#0d193c] hover:text-white transition-colors flex items-center gap-1 cursor-pointer bg-white"
+                                onclick="ackAll()">
+                                RECONOCER TODAS <span
+                                    class="material-symbols-outlined text-sm font-bold">done_all</span>
+                            </button>
+                        </div>
+
+                        <!-- Alert Cards List -->
+                        <div class="flex flex-col gap-4 mt-6 flex-grow" id="G_ALRT">
+                            <!-- Rendered dynamically by JS -->
+                        </div>
+                    </section>
+
+                    <!-- Trend Chart section (inside right column, below alerts) -->
+                    <section class="sec bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col gap-4">
+                        <div class="flex justify-between items-center pb-4 border-b border-gray-150">
+                            <div class="flex items-center gap-2 text-[#0d193c] font-bold text-lg">
+                                <span class="material-symbols-outlined text-[#0d193c]">show_chart</span>
+                                Tendencia promedio
+                            </div>
+                            <select
+                                class="bg-gray-50 border border-gray-200 rounded px-2 py-1 text-sm text-primary font-semibold outline-none cursor-pointer"
+                                id="G_MSEL"></select>
+                        </div>
+
+                        <div class="lgr">
+                            <span class="lgi"><span class="lgd" style="background:#5f7282"></span>Desgaste</span>
+                            <span class="lgi"><span class="lgd" style="background:#f2b705"></span>Alerta</span>
+                            <span class="lgi"><span class="lgd" style="background:#c83e3a"></span>Crítico</span>
+                        </div>
+
+                        <div class="cw"><canvas id="G_TRCH"></canvas></div>
+                    </section>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- DETAIL VIEW: `#VDET` -->
+    <div id="VDET" style="display:none">
+        <main class="p-6 md:p-8 max-w-[1600px] mx-auto flex flex-col gap-6">
+            <!-- Top controls row -->
+            <div
+                class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-gray-100 bg-white p-4 rounded-lg shadow-sm">
+                <div class="flex items-center gap-3">
+                    <button
+                        class="px-4 py-2 border border-[#0d193c] text-[#0d193c] font-bold text-sm tracking-wider rounded hover:bg-[#0d193c] hover:text-white transition-colors cursor-pointer flex items-center gap-1 bg-white"
+                        onclick="showGen()">
+                        <span class="material-symbols-outlined text-sm font-bold">arrow_back</span> Volver
+                    </button>
+                    <span class="text-sm font-semibold text-gray-900 uppercase tracking-wide" id="BREAD">General /
+                        SAG-01</span>
+                </div>
+
+                <!-- Segmented control Tabs -->
+                <div class="tabs">
+                    <button class="tab on" id="TAB_EST" onclick="switchTab('est')">Estado</button>
+                    <button class="tab" id="TAB_MNT" onclick="switchTab('mnt')">Proyección</button>
+                    <button class="tab" id="TAB_HST" onclick="switchTab('hst')">Historial</button>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="flex items-center gap-3">
+                    <button
+                        class="px-4 py-2 bg-success-600 border border-success-600 hover:bg-success-700 hover:border-success-700 text-white font-bold text-sm tracking-wider rounded transition-colors cursor-pointer flex items-center gap-1"
+                        onclick="openModal()">
+                        <span class="material-symbols-outlined text-sm font-bold">add</span> Reemplazo
+                    </button>
+                    <button
+                        class="px-4 py-2 border border-[#0d193c] text-[#0d193c] font-bold text-sm tracking-wider rounded hover:bg-[#0d193c] hover:text-white transition-colors cursor-pointer flex items-center gap-1 bg-white"
+                        onclick="exportXLS()">
+                        <span class="material-symbols-outlined text-sm font-bold">description</span> Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab 1: Estado view -->
+            <div id="VEST" class="flex flex-col gap-6">
+                <!-- Metric cards -->
+                <div class="g6">
+                    <div class="mc">
+                        <div class="lb">Escobillas</div>
+                        <div class="vl text-[#0d193c]" id="D_TOT">—</div>
+                    </div>
+                    <div class="mc !border-t-success-500 cursor-pointer" onclick="setFilter('neu')">
+                        <div class="lb text-success-600">Normal</div>
+                        <div class="vl text-success-600" id="D_GRN">—</div>
+                    </div>
+                    <div class="mc !border-t-warning-500 cursor-pointer" onclick="setFilter('yw')">
+                        <div class="lb text-warning-500">&#9650; Alerta P3</div>
+                        <div class="vl text-warning-500" id="D_YEL">—</div>
+                    </div>
+                    <div class="mc !border-t-error-500 cursor-pointer" onclick="setFilter('rd')">
+                        <div class="lb text-error-500">&#9650; Crítico P2</div>
+                        <div class="vl text-error-500" id="D_RED">—</div>
+                    </div>
+                    <div class="mc !border-t-warning-500 cursor-pointer" onclick="setFilter('tmp')">
+                        <div class="lb text-warning-600">&#9650; Temp. máx.</div>
+                        <div class="vl text-warning-600" id="D_TMX">—</div>
+                    </div>
+                    <div class="mc !border-t-error-500 cursor-pointer" onclick="setFilter('bat')">
+                        <div class="lb text-error-600">&#9650; Bat. mín.</div>
+                        <div class="vl text-error-600" id="D_BMN">—</div>
+                    </div>
+                </div>
+
+                <!-- Dynamic phase grid container -->
+                <div class="grid gap-6" id="D_PHGRID"></div>
+
+                <!-- Bottom charts & alarms -->
+                <div class="g2">
+                    <div class="sec">
+                        <div class="sh">
+                            <span class="st"><i class="ti ti-chart-bar"></i> Comparativo por fase</span>
+                            <select class="sel" id="D_PMET" onchange="updPhCh()">
+                                <option value="wear">Desgaste (mm)</option>
+                                <option value="temp">Temperatura (°C)</option>
+                                <option value="batt">Batería (%)</option>
+                            </select>
+                        </div>
+                        <div class="cwsm"><canvas id="D_PHCH"></canvas></div>
+                    </div>
+                    <div class="sec">
+                        <div class="sh"><span class="st"><i class="ti ti-bell"></i> Alarmas del motor</span></div>
+                        <div id="D_ALRT" class="flex flex-col gap-2"></div>
+                    </div>
+                </div>
+
+                <!-- Trend chart -->
+                <div class="sec">
+                    <div class="sh">
+                        <span class="st"><i class="ti ti-chart-line"></i> Tendencia por fase</span>
+                        <select class="sel" id="D_TMET" onchange="updPhTr()">
+                            <option value="wear">Desgaste (mm)</option>
+                            <option value="temp">Temperatura (°C)</option>
+                        </select>
+                    </div>
+                    <div class="lgr">
+                        <span class="lgi"><span class="lgd" style="background:#378add"></span>Fase R</span>
+                        <span class="lgi"><span class="lgd" style="background:#639922"></span>Fase S</span>
+                        <span class="lgi"><span class="lgd" style="background:#ef9f27"></span>Fase T</span>
+                    </div>
+                    <div class="cw"><canvas id="D_TRCH"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Proyección view -->
+            <div id="VMNT" style="display:none" class="flex flex-col gap-6">
+                <div class="g4">
+                    <div class="mc">
+                        <div class="lb">Reemplazos este mes</div>
+                        <div class="vl text-blue-500" id="M_THIS">—</div>
+                    </div>
+                    <div class="mc">
+                        <div class="lb">Reemplazos próx. mes</div>
+                        <div class="vl text-gray-900" id="M_NEXT">—</div>
+                    </div>
+                    <div class="mc !border-t-error-500">
+                        <div class="lb text-error-500">Intervención más urgente</div>
+                        <div class="vl text-error-500" id="M_URG">—</div>
+                    </div>
+                    <div class="mc">
+                        <div class="lb">Vida útil promedio</div>
+                        <div class="vl text-gray-900" id="M_AVG">—</div>
+                    </div>
+                </div>
+                <div class="sec">
+                    <div class="sh"><span class="st"><i class="ti ti-calendar"></i> Calendario de reemplazos
+                            proyectados</span></div>
+                    <div style="overflow-x:auto" class="mt-4">
+                        <table id="M_TBL" class="w-full text-left border-collapse min-w-[700px] list-table">
+                            <!-- Head and body are rendered dynamically by JS -->
+                        </table>
+                    </div>
+                </div>
+                <div class="sec">
+                    <div class="sh"><span class="st"><i class="ti ti-chart-bar"></i> Reemplazos proyectados por
+                            mes</span></div>
+                    <div class="cw"><canvas id="M_CHTM"></canvas></div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Historial view -->
+            <div id="VHST" style="display:none" class="flex flex-col gap-6">
+                <div class="g4">
+                    <div class="mc">
+                        <div class="lb">Total reemplazos</div>
+                        <div class="vl text-blue-500" id="H_TOT">—</div>
+                    </div>
+                    <div class="mc">
+                        <div class="lb">Este mes</div>
+                        <div class="vl text-gray-900" id="H_MON">—</div>
+                    </div>
+                    <div class="mc">
+                        <div class="lb">Último reemplazo</div>
+                        <div class="vl text-gray-900" id="H_LST" style="font-size:15px">—</div>
+                    </div>
+                    <div class="mc">
+                        <div class="lb">Técnico más activo</div>
+                        <div class="vl text-gray-900" id="H_TEC" style="font-size:15px">—</div>
+                    </div>
+                </div>
+                <div class="sec">
+                    <div class="sh">
+                        <span class="st"><i class="ti ti-history"></i> Registro de reemplazos</span>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap">
+                            <select class="sel" id="HF_PH" onchange="rendHist()">
+                                <option value="">Todas las fases</option>
+                            </select>
+                            <select class="sel" id="HF_RE" onchange="rendHist()">
+                                <option value="">Todos los motivos</option>
+                                <option value="programado">Programado</option>
+                                <option value="critico">Crítico</option>
+                                <option value="preventivo">Preventivo</option>
+                                <option value="temperatura">Temperatura</option>
+                                <option value="bateria">Batería</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="H_EMPTY"
+                        style="font-size:12px;color:#778a97;padding:24px 0;text-align:center;display:none">
+                        <i class="ti ti-inbox" style="font-size:32px;display:block;margin-bottom:8px"></i>Sin registros
+                    </div>
+                    <div style="overflow-x:auto" class="mt-4">
+                        <table id="H_TBL" style="display:none"
+                            class="w-full text-left border-collapse min-w-[700px] list-table">
+                            <thead>
+                                <tr class="bg-gray-100 text-gray-900">
+                                    <th class="py-3 px-4 font-semibold text-sm border-b border-gray-200">Fecha</th>
+                                    <th class="py-3 px-4 font-semibold text-sm border-b border-gray-200">Fase</th>
+                                    <th class="py-3 px-4 font-semibold text-sm border-b border-gray-200">Escobilla</th>
+                                    <th class="py-3 px-4 font-semibold text-sm border-b border-gray-200">Tipo</th>
+                                    <th class="py-3 px-4 font-semibold text-sm border-b border-gray-200">Mm ret.</th>
+                                    <th class="py-3 px-4 font-semibold text-sm border-b border-gray-200">Mm inst.</th>
+                                    <th class="py-3 px-4 font-semibold text-sm border-b border-gray-200">Motivo</th>
+                                    <th class="py-3 px-4 font-semibold text-sm border-b border-gray-200">Técnico</th>
+                                    <th class="py-3 px-4 font-semibold text-sm border-b border-gray-200">Obs.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="H_TBODY"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="sec" id="H_CHSEC" style="display:none">
+                    <div class="sh"><span class="st"><i class="ti ti-chart-bar"></i> Reemplazos por mes</span></div>
+                    <div class="cw"><canvas id="H_CHTM"></canvas></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal roles -->
+    <div class="mo" id="MODAL_ROLE" style="display:none" onclick="if(event.target===this)closeRoleModal()">
+        <div class="md">
+            <h3 id="ROLE_MODAL_TITLE" class="flex items-center gap-2"><span
+                    class="material-symbols-outlined">lock</span> Acceso</h3>
+            <div class="fr">
+                <label>Usuario</label>
+                <input type="text" id="R_USER" placeholder="usuario" onkeydown="if(event.key==='Enter')doRoleLogin()">
+            </div>
+            <div class="fr">
+                <label>Contraseña</label>
+                <input type="password" id="R_PASS" placeholder="contraseña"
+                    onkeydown="if(event.key==='Enter')doRoleLogin()">
+            </div>
+            <div id="R_ERR" style="display:none"
+                class="text-sm text-error-600 bg-red-50 border-l-4 border-error-500 p-3 rounded flex items-center gap-2">
+                <span class="material-symbols-outlined text-sm font-bold">error</span> Credenciales incorrectas
+            </div>
+            <div class="mac">
+                <button class="btn cursor-pointer" onclick="closeRoleModal()">Cancelar</button>
+                <button class="btn primary cursor-pointer" onclick="doRoleLogin()"><span
+                        class="material-symbols-outlined text-sm">login</span> Ingresar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal reemplazo -->
+    <div class="mo" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+        <div class="md w-[500px]">
+            <h3 class="flex items-center gap-2"><span class="material-symbols-outlined">construction</span> Registrar
+                reemplazo</h3>
+            <div class="fg2">
+                <div class="fr">
+                    <label>Motor</label>
+                    <select id="f-motor" class="bg-white border border-gray-200 rounded p-2 text-sm"></select>
+                </div>
+                <div class="fr">
+                    <label>Fase</label>
+                    <select id="f-phase" class="bg-white border border-gray-200 rounded p-2 text-sm"></select>
+                </div>
+            </div>
+            <div class="fg2">
+                <div class="fr">
+                    <label>Escobilla</label>
+                    <select id="f-brush" class="bg-white border border-gray-200 rounded p-2 text-sm"></select>
+                </div>
+                <div class="fr">
+                    <label>Fecha</label>
+                    <input type="date" id="f-date" class="border border-gray-200 rounded p-2 text-sm">
+                </div>
+            </div>
+            <div class="fg2">
+                <div class="fr">
+                    <label>Mm retirada</label>
+                    <input type="number" id="f-mmout" min="0" max="120" placeholder="ej: 28"
+                        class="border border-gray-200 rounded p-2 text-sm">
+                </div>
+                <div class="fr">
+                    <label>Mm nueva instalada</label>
+                    <input type="number" id="f-mmin" placeholder="ej: 80"
+                        class="border border-gray-200 rounded p-2 text-sm">
+                </div>
+            </div>
+            <div class="fr">
+                <label>Tipo de reemplazo</label>
+                <select id="f-type" class="bg-white border border-gray-200 rounded p-2 text-sm">
+                    <option value="escobilla">Escobilla</option>
+                    <option value="sensor">Sensor (batería)</option>
+                    <option value="ambos">Escobilla + Sensor</option>
+                </select>
+            </div>
+            <div class="fr">
+                <label>Motivo</label>
+                <select id="f-reason" class="bg-white border border-gray-200 rounded p-2 text-sm">
+                    <option value="programado">Programado</option>
+                    <option value="critico">Desgaste crítico</option>
+                    <option value="preventivo">Preventivo</option>
+                    <option value="temperatura">Temperatura elevada</option>
+                    <option value="bateria">Batería crítica</option>
+                    <option value="sin_senal">Sin señal sensor</option>
+                </select>
+            </div>
+            <div class="fr">
+                <label>Técnico responsable</label>
+                <select id="f-tech" class="bg-white border border-gray-200 rounded p-2 text-sm"></select>
+            </div>
+            <div class="fr">
+                <label>Observaciones</label>
+                <textarea id="f-obs"
+                    class="border border-gray-200 rounded p-2 text-sm h-20 outline-none resize-none"></textarea>
+            </div>
+            <div class="mac">
+                <button class="btn cursor-pointer" onclick="closeModal()">Cancelar</button>
+                <button class="btn primary cursor-pointer" onclick="saveRec()"><span
+                        class="material-symbols-outlined text-sm">check</span> Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="src/assets/js/functions.js"></script>
 </body>
 
 </html>

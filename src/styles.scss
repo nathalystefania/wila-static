@@ -1,4 +1,5 @@
 @use "tailwindcss";
+@use "./dashboard";
 
 :root {
   --color-primary: #0e193c;
@@ -36,14 +37,47 @@
   --color-success-10: #e6f3ed;
   --color-success-20: #2e8b57;
   --color-success-30: #24724a;
+  --color-success-50: #E6F3ED;
+  --color-success-100: #CCEADB;
+  --color-success-200: #A5D6BE;
+  --color-success-300: #74BC97;
+  --color-success-400: #4BA275;
+  --color-success-500: #2E8B57;
+  --color-success-600: #24724A;
+  --color-success-700: #1A5A3B;
+  --color-success-800: #12422B;
+  --color-success-900: #0A2B1C;
+  --color-success-950: #061610;
 
   --color-warning-10: #fff4d6;
   --color-warning-20: #f2b705;
   --color-warning-30: #d9a300;
+  --color-warning-50: #FFF4D6;
+  --color-warning-100: #FFE8A8;
+  --color-warning-200: #FFD66B;
+  --color-warning-300: #FFC433;
+  --color-warning-400: #F9BA14;
+  --color-warning-500: #F2B705;
+  --color-warning-600: #D9A300;
+  --color-warning-700: #B88A00;
+  --color-warning-800: #8F6C00;
+  --color-warning-900: #664D00;
+  --color-warning-950: #3D2D00;
 
   --color-error-10: #f9e6e5;
   --color-error-20: #c83e3a;
   --color-error-30: #a8322f;
+  --color-error-50: #F9E6E5;
+  --color-error-100: #F2C5C3;
+  --color-error-200: #E89F9D;
+  --color-error-300: #DD7572;
+  --color-error-400: #D25855;
+  --color-error-500: #C83E3A;
+  --color-error-600: #A8322F;
+  --color-error-700: #872624;
+  --color-error-800: #661B19;
+  --color-error-900: #44110F;
+  --color-error-950: #2B0A08;
 
   --color-disabled-background: #f5f7fa;
   --color-disabled-base: #d3dce3;
@@ -51,6 +85,18 @@
 
   --color-black: #171717;
   --color-white: #ffffff;
+
+  --color-gray-50: #F0F4F6;
+  --color-gray-100: #E1E9ED;
+  --color-gray-200: #D3DDE3;
+  --color-gray-300: #BFD0D7;
+  --color-gray-400: #B3C4CC;
+  --color-gray-500: #A6B8C1;
+  --color-gray-600: #8FA1AC;
+  --color-gray-700: #778A97;
+  --color-gray-800: #5F7282;
+  --color-gray-900: #485A6D;
+  --color-gray-950: #354352;
 }
 
 @theme {
@@ -89,14 +135,47 @@
   --color-success-10: var(--color-success-10);
   --color-success-20: var(--color-success-20);
   --color-success-30: var(--color-success-30);
+  --color-success-50: var(--color-success-50);
+  --color-success-100: var(--color-success-100);
+  --color-success-200: var(--color-success-200);
+  --color-success-300: var(--color-success-300);
+  --color-success-400: var(--color-success-400);
+  --color-success-500: var(--color-success-500);
+  --color-success-600: var(--color-success-600);
+  --color-success-700: var(--color-success-700);
+  --color-success-800: var(--color-success-800);
+  --color-success-900: var(--color-success-900);
+  --color-success-950: var(--color-success-950);
 
   --color-warning-10: var(--color-warning-10);
   --color-warning-20: var(--color-warning-20);
   --color-warning-30: var(--color-warning-30);
+  --color-warning-50: var(--color-warning-50);
+  --color-warning-100: var(--color-warning-100);
+  --color-warning-200: var(--color-warning-200);
+  --color-warning-300: var(--color-warning-300);
+  --color-warning-400: var(--color-warning-400);
+  --color-warning-500: var(--color-warning-500);
+  --color-warning-600: var(--color-warning-600);
+  --color-warning-700: var(--color-warning-700);
+  --color-warning-800: var(--color-warning-800);
+  --color-warning-900: var(--color-warning-900);
+  --color-warning-950: var(--color-warning-950);
 
   --color-error-10: var(--color-error-10);
   --color-error-20: var(--color-error-20);
   --color-error-30: var(--color-error-30);
+  --color-error-50: var(--color-error-50);
+  --color-error-100: var(--color-error-100);
+  --color-error-200: var(--color-error-200);
+  --color-error-300: var(--color-error-300);
+  --color-error-400: var(--color-error-400);
+  --color-error-500: var(--color-error-500);
+  --color-error-600: var(--color-error-600);
+  --color-error-700: var(--color-error-700);
+  --color-error-800: var(--color-error-800);
+  --color-error-900: var(--color-error-900);
+  --color-error-950: var(--color-error-950);
 
   --color-disabled-background: var(--color-disabled-background);
   --color-disabled-base: var(--color-disabled-base);
@@ -104,6 +183,18 @@
 
   --color-black: var(--color-black);
   --color-white: var(--color-white);
+
+  --color-gray-50: var(--color-gray-50);
+  --color-gray-100: var(--color-gray-100);
+  --color-gray-200: var(--color-gray-200);
+  --color-gray-300: var(--color-gray-300);
+  --color-gray-400: var(--color-gray-400);
+  --color-gray-500: var(--color-gray-500);
+  --color-gray-600: var(--color-gray-600);
+  --color-gray-700: var(--color-gray-700);
+  --color-gray-800: var(--color-gray-800);
+  --color-gray-900: var(--color-gray-900);
+  --color-gray-950: var(--color-gray-950);
 }
 
 // Global resets

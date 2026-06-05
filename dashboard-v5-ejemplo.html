@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<style>
+:root{
+  --bg0:#141618;--bg1:#1e2228;--bg2:#252b33;--bg3:#2e3540;
+  --border:#374151;--txt1:#c8cdd3;--txt2:#7a8290;--txt3:#4a5568;
+  --accent:#4a9fd4;--p2:#e83c3c;--p3:#f0c040;--ok:#4a7c59;--neu:#4b5563;
+  --fd:'Courier New',Courier,monospace;--fu:system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--fu);background:var(--bg0);color:var(--txt1);font-size:12px;line-height:1.4}
+.topbar{background:var(--bg1);border-bottom:1px solid var(--border);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.topbar h1{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px;letter-spacing:.8px;text-transform:uppercase;color:var(--txt1)}
+.sub{font-size:10px;color:var(--txt2);margin-top:2px;letter-spacing:.5px;text-transform:uppercase}
+.tr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ts{font-size:11px;color:var(--txt2);display:flex;align-items:center;gap:5px;font-family:var(--fd)}
+.simbar{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px}
+.spw{width:80px;height:3px;background:var(--bg3);overflow:hidden}
+.spf{height:100%;background:var(--accent);transition:width .5s linear}
+.btn{font-size:10px;padding:3px 9px;border-radius:2px;border:1px solid var(--border);background:var(--bg2);color:var(--txt1);cursor:pointer;display:inline-flex;align-items:center;gap:4px;letter-spacing:.4px;text-transform:uppercase}
+.btn:hover{background:var(--bg3);border-color:var(--txt2)}
+.btn.ok{border-color:var(--ok);color:var(--ok)}.btn.ok:hover{background:rgba(74,124,89,.15)}
+.btn.warn{border-color:var(--p3);color:var(--p3)}.btn.warn:hover{background:rgba(240,192,64,.1)}
+.btn.danger{border-color:var(--p2);color:var(--p2)}.btn.danger:hover{background:rgba(232,60,60,.1)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}.btn.primary:hover{background:#3a8fc4}
+.main{padding:12px 20px;display:flex;flex-direction:column;gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.g6{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--border);border-radius:2px;padding:8px 12px;transition:opacity .2s,outline .1s}
+.mc .lb{font-size:9px;color:var(--txt2);margin-bottom:2px;text-transform:uppercase;letter-spacing:.7px}
+.mc .vl{font-size:26px;font-weight:700;font-family:var(--fd);line-height:1.1}
+.vl.neu{color:var(--txt1)}.vl.yw{color:var(--p3)}.vl.rd{color:var(--p2)}.vl.bl{color:var(--accent)}.vl.gn{color:var(--ok)}
+.sec{background:var(--bg1);border:1px solid var(--border);border-radius:2px;padding:12px}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px}
+.st{font-size:10px;font-weight:700;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.7px;color:var(--txt2);border-left:2px solid var(--accent);padding-left:6px}
+table{width:100%;border-collapse:collapse}
+th{font-size:9px;font-weight:700;color:var(--txt3);text-align:left;padding:5px 10px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.6px}
+td{padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;vertical-align:middle;color:var(--txt1)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg2)}
+.bdg{display:inline-flex;align-items:center;gap:3px;padding:1px 6px;border-radius:2px;font-size:9px;font-weight:700;letter-spacing:.4px;border:1px solid;text-transform:uppercase}
+.bdg.neu{border-color:var(--neu);color:var(--txt2)}.bdg.gn{border-color:var(--ok);color:var(--ok);background:rgba(74,124,89,.1)}.bdg.yw{border-color:var(--p3);color:var(--p3);background:rgba(240,192,64,.1)}.bdg.rd{border-color:var(--p2);color:var(--p2);background:rgba(232,60,60,.1)}.bdg.gy{border-color:var(--border);color:var(--txt2)}.bdg.bl{border-color:var(--accent);color:var(--accent);background:rgba(74,159,212,.1)}
+.bw{display:flex;align-items:center;gap:6px}
+.bg{flex:1;height:5px;background:var(--bg3);overflow:hidden}
+.bf{height:100%}
+.bf.neu{background:var(--neu)}.bf.yw{background:var(--p3)}.bf.rd{background:var(--p2)}.bf.gy{background:var(--neu)}.bf.gn{background:var(--ok)}
+.bp{font-size:10px;font-weight:700;min-width:34px;text-align:right;font-family:var(--fd)}
+.cg3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cg4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.cg2{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.ci label{font-size:9px;color:var(--txt2);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px}
+.ci .cv{font-size:13px;font-weight:700;margin-top:3px;font-family:var(--fd);color:var(--txt1)}
+.ci input[type=range]{width:100%;accent-color:var(--accent)}
+.ar{display:flex;align-items:flex-start;gap:10px;padding:6px 10px;border-radius:2px;margin-bottom:3px;border-left:3px solid}
+.ar:last-child{margin-bottom:0}
+.ar.rd{background:rgba(232,60,60,.08);border-left-color:var(--p2)}
+.ar.yw{background:rgba(240,192,64,.06);border-left-color:var(--p3)}
+.ar.bl{background:rgba(74,159,212,.06);border-left-color:var(--accent)}
+.at{font-size:11px;color:var(--txt1)}.at strong{font-weight:700}
+.am{font-size:9px;color:var(--txt2);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+.sel{font-size:11px;padding:3px 7px;border-radius:2px;border:1px solid var(--border);background:var(--bg2);color:var(--txt1)}
+.inp{font-size:11px;padding:5px 9px;border-radius:2px;border:1px solid var(--border);background:var(--bg2);color:var(--txt1);width:100%}
+.cw{position:relative;height:170px}.cwsm{position:relative;height:150px}
+.lgr{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.lgi{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px}
+.lgd{width:12px;height:3px}
+.tabs{display:flex;gap:3px;flex-wrap:wrap}
+.tab{font-size:9px;padding:3px 10px;border-radius:2px;border:1px solid var(--border);background:transparent;color:var(--txt2);cursor:pointer;text-transform:uppercase;letter-spacing:.5px}
+.tab.on{background:var(--bg3);color:var(--txt1);font-weight:700;border-color:var(--accent)}
+.tab:hover:not(.on){background:var(--bg2)}
+.chip{font-size:10px;font-weight:700;padding:2px 7px;border-radius:2px;white-space:nowrap;font-family:var(--fd);border:1px solid;letter-spacing:.3px}
+.chip.neu{border-color:var(--neu);color:var(--txt2)}.chip.gn{border-color:var(--ok);color:var(--ok)}.chip.yw{border-color:var(--p3);color:var(--p3)}.chip.rd{border-color:var(--p2);color:var(--p2)}
+.phc{background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:10px}
+.pht{font-size:9px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2)}
+.pha{font-size:9px;padding:2px 6px;border-radius:2px;border:1px solid;font-family:var(--fd);font-weight:700}
+.pha.neu{border-color:var(--neu);color:var(--txt2)}.pha.yw{border-color:var(--p3);color:var(--p3)}.pha.rd{border-color:var(--p2);color:var(--p2)}.pha.gy{border-color:var(--border);color:var(--txt3)}
+.brl{display:flex;flex-direction:column;gap:6px}
+.brc{border-radius:2px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;border:1px solid var(--border);border-left:3px solid var(--neu);transition:opacity .2s,transform .2s;background:var(--bg1)}
+.brc.neu{border-left-color:var(--neu)}.brc.yw{border-left-color:var(--p3);background:rgba(240,192,64,.03)}.brc.rd{border-left-color:var(--p2);background:rgba(232,60,60,.05)}.brc.gy{border-left-color:var(--neu)}
+.brh{display:flex;align-items:center;justify-content:space-between}
+.brn{font-size:10px;font-weight:700;color:var(--txt1);text-transform:uppercase;letter-spacing:.4px}
+.brm{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}
+.bri{display:flex;flex-direction:column;gap:1px}
+.bril{font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.briv{font-size:14px;font-weight:700;font-family:var(--fd);line-height:1.2}
+.briv.neu{color:var(--txt1)}.briv.yw{color:var(--p3)}.briv.rd{color:var(--p2)}.briv.gn{color:var(--ok)}
+.rb{font-size:9px;padding:1px 5px;border-radius:2px;font-weight:700;border:1px solid;text-transform:uppercase;letter-spacing:.3px}
+.rb.programado{border-color:var(--accent);color:var(--accent)}.rb.critico{border-color:var(--p2);color:var(--p2)}.rb.preventivo{border-color:var(--ok);color:var(--ok)}.rb.temperatura,.rb.bateria{border-color:var(--p3);color:var(--p3)}.rb.sin_senal{border-color:var(--border);color:var(--txt2)}
+.caus{font-size:9px;color:var(--txt2);margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+.sum-item{background:var(--bg2);border:1px solid var(--border);border-top:2px solid var(--border);border-radius:2px;padding:8px 12px}
+.sum-item .si-lbl{font-size:8px;color:var(--txt2);display:flex;align-items:center;gap:4px;margin-bottom:3px;text-transform:uppercase;letter-spacing:.6px}
+.sum-item .si-val{font-size:14px;font-weight:700;font-family:var(--fd);color:var(--txt1)}
+.mo{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:100}
+.md{background:var(--bg1);border:1px solid var(--border);border-radius:2px;padding:18px;width:420px;max-width:95vw;display:flex;flex-direction:column;gap:12px;max-height:90vh;overflow-y:auto}
+.md h3{font-size:11px;font-weight:700;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.6px;color:var(--txt1);border-left:3px solid var(--accent);padding-left:8px}
+.fr{display:flex;flex-direction:column;gap:3px}
+.fr label{font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px}
+.fr input,.fr select,.fr textarea{font-size:11px;padding:5px 9px;border-radius:2px;border:1px solid var(--border);background:var(--bg2);color:var(--txt1);width:100%}
+.fr textarea{resize:vertical;min-height:55px}
+.fg2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mac{display:flex;justify-content:flex-end;gap:6px}
+.plant-section{background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.plant-section-title{font-size:9px;font-weight:700;color:var(--txt2);display:flex;align-items:center;gap:6px;margin-bottom:2px;text-transform:uppercase;letter-spacing:.6px;border-left:2px solid var(--accent);padding-left:6px}
+.motor-row{display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--bg1);border-radius:2px;border:1px solid var(--border);flex-wrap:wrap}
+.motor-row input,.motor-row select{font-size:10px;padding:3px 7px;border-radius:2px;border:1px solid var(--border);background:var(--bg2);color:var(--txt1);flex:1;min-width:55px}
+.tech-row{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg1);border-radius:2px;border:1px solid var(--border)}
+.tech-row input{font-size:10px;padding:3px 7px;border-radius:2px;border:1px solid var(--border);background:var(--bg2);color:var(--txt1);flex:1}
+</style>
+</head>
+<body>
+
+<!-- Modal roles -->
+<div class="mo" id="MODAL_ROLE" style="display:none" onclick="if(event.target===this)closeRoleModal()">
+  <div class="md" style="width:320px">
+    <h3 id="ROLE_MODAL_TITLE"><i class="ti ti-lock"></i> Acceso</h3>
+    <div class="fr"><label>Usuario</label><input type="text" id="R_USER" placeholder="usuario" onkeydown="if(event.key==='Enter')doRoleLogin()"></div>
+    <div class="fr"><label>Contraseña</label><input type="password" id="R_PASS" placeholder="contraseña" onkeydown="if(event.key==='Enter')doRoleLogin()"></div>
+    <div id="R_ERR" style="font-size:10px;color:var(--p2);display:none;background:rgba(232,60,60,.1);padding:6px 10px;border-radius:2px;border-left:2px solid var(--p2)"><i class="ti ti-alert-circle"></i> Credenciales incorrectas</div>
+    <div class="mac">
+      <button class="btn" onclick="closeRoleModal()">Cancelar</button>
+      <button class="btn primary" onclick="doRoleLogin()"><i class="ti ti-login"></i> Ingresar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal reemplazo -->
+<div class="mo" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="md">
+    <h3><i class="ti ti-tool"></i> Registrar reemplazo</h3>
+    <div class="fg2">
+      <div class="fr"><label>Motor</label><select id="f-motor" class="sel"></select></div>
+      <div class="fr"><label>Fase</label><select id="f-phase" class="sel"></select></div>
+    </div>
+    <div class="fg2">
+      <div class="fr"><label>Escobilla</label><select id="f-brush" class="sel"></select></div>
+      <div class="fr"><label>Fecha</label><input type="date" id="f-date"></div>
+    </div>
+    <div class="fg2">
+      <div class="fr"><label>Mm retirada</label><input type="number" id="f-mmout" min="0" max="120" placeholder="ej: 28"></div>
+      <div class="fr"><label>Mm nueva instalada</label><input type="number" id="f-mmin" placeholder="ej: 80"></div>
+    </div>
+    <div class="fr"><label>Tipo de reemplazo</label>
+      <select id="f-type" class="sel"><option value="escobilla">Escobilla</option><option value="sensor">Sensor (batería)</option><option value="ambos">Escobilla + Sensor</option></select>
+    </div>
+    <div class="fr"><label>Motivo</label>
+      <select id="f-reason" class="sel">
+        <option value="programado">Programado</option><option value="critico">Desgaste crítico</option>
+        <option value="preventivo">Preventivo</option><option value="temperatura">Temperatura elevada</option>
+        <option value="bateria">Batería crítica</option><option value="sin_senal">Sin señal sensor</option>
+      </select>
+    </div>
+    <div class="fr"><label>Técnico responsable</label><select id="f-tech" class="sel"></select></div>
+    <div class="fr"><label>Observaciones</label><textarea id="f-obs"></textarea></div>
+    <div class="mac">
+      <button class="btn" onclick="closeModal()">Cancelar</button>
+      <button class="btn primary" onclick="saveRec()"><i class="ti ti-check"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div>
+    <h1><i class="ti ti-bolt"></i> <span id="TTL">Monitor de escobillas</span></h1>
+    <div class="sub" id="SUB">—</div>
+  </div>
+  <div class="tr">
+    <div class="simbar">
+      <i class="ti ti-radio"></i><span>Próx. med.:</span>
+      <div class="spw"><div class="spf" id="SPF" style="width:0%"></div></div>
+      <span id="SCD">—</span>
+      <button class="btn" onclick="toggleSim()"><i class="ti ti-player-pause" id="SICO"></i> <span id="SLBL">Pausar</span></button>
+    </div>
+<!-- Contador alarmas topbar -->
+<div id="ALARM_BAR" style="display:flex;align-items:center;gap:6px;padding:4px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:2px">
+  <span style="font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px">Alarmas:</span>
+  <span id="ALM_P1" style="font-size:10px;font-weight:700;font-family:var(--fd);color:#ff00ff;display:none">P1:<span id="ALM_P1_N">0</span></span>
+  <span id="ALM_P2" style="font-size:10px;font-weight:700;font-family:var(--fd);color:var(--p2);display:none">P2:<span id="ALM_P2_N">0</span></span>
+  <span id="ALM_P3" style="font-size:10px;font-weight:700;font-family:var(--fd);color:var(--p3);display:none">P3:<span id="ALM_P3_N">0</span></span>
+  <span id="ALM_OK" style="font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px">Sin alarmas</span>
+</div>
+      <i class="ti ti-user-circle"></i><span>Operador</span>
+    </div>
+    <div id="ROLE_BADGE" style="font-size:10px;color:var(--txt2);display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.4px"><button class="btn" onclick="openRoleModal('cfg')"><i class="ti ti-building-factory"></i> Config. planta</button></div>
+    <div id="BTN_CFG_LOGOUT" style="display:none"><button class="btn" onclick="doLogout('cfg')"><i class="ti ti-logout"></i> Salir config.</button></div>
+    <div id="BTN_ADMIN_WRAP"><button class="btn warn" onclick="openRoleModal('admin')"><i class="ti ti-lock"></i> Admin</button></div>
+    <div id="BTN_ADMIN_LOGOUT" style="display:none"><button class="btn" onclick="doLogout('admin')"><i class="ti ti-logout"></i> Salir admin</button></div>
+    <div class="ts"><i class="ti ti-clock"></i><span id="TS"></span></div>
+    <!-- MQTT status chip -->
+    <div id="MQTT_CHIP" style="display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:2px;border:1px solid var(--border);background:var(--bg2);cursor:pointer" onclick="toggleMqttPanel()" title="Configurar MQTT">
+      <i class="ti ti-radio" id="MQTT_ICO" style="font-size:12px;color:var(--txt3)"></i>
+      <span id="MQTT_ST" style="font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3)">MQTT off</span>
+    </div>
+  </div>
+</div>
+
+<!-- MQTT Config Panel -->
+<div id="MQTT_PANEL" style="display:none;background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 20px">
+  <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+    <div style="font-size:9px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;border-left:2px solid var(--accent);padding-left:6px;align-self:center">MQTT · Mosquitto</div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <label style="font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Host / IP Raspberry</label>
+      <input id="MQ_HOST" class="inp" style="width:160px;font-size:11px;padding:3px 7px" value="localhost" placeholder="192.168.1.x">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <label style="font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Puerto WS</label>
+      <input id="MQ_PORT" class="inp" style="width:70px;font-size:11px;padding:3px 7px" value="9001" placeholder="9001">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <label style="font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px">Topic base (ESP)</label>
+      <input id="MQ_TOPIC" class="inp" style="width:180px;font-size:11px;padding:3px 7px" value="wila/sensores" placeholder="wila/sensores">
+    </div>
+    <button class="btn ok" onclick="mqttConnect()" id="MQ_BTN_CONN"><i class="ti ti-plug"></i> Conectar</button>
+    <button class="btn danger" onclick="mqttDisconnect()" id="MQ_BTN_DISC" style="display:none"><i class="ti ti-plug-off"></i> Desconectar</button>
+    <div style="flex:1;min-width:140px">
+      <div style="font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px">Último mensaje</div>
+      <div id="MQ_LAST" style="font-size:10px;color:var(--txt2);font-family:var(--fd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px">—</div>
+    </div>
+  </div>
+  <div style="margin-top:8px;font-size:9px;color:var(--txt3);line-height:1.6">
+    <strong style="color:var(--txt2)">Formato JSON esperado desde la ESP:</strong>
+    <code style="background:var(--bg3);padding:1px 6px;border-radius:2px;color:var(--accent)">{"mm":65.2,"temp":78,"batt":82}</code>
+    &nbsp;·&nbsp; Topic: <code style="background:var(--bg3);padding:1px 6px;border-radius:2px;color:var(--txt2)">wila/sensores</code>
+    &nbsp;·&nbsp; Mosquitto requiere <strong>listener 9001 websockets</strong> en mosquitto.conf
+  </div>
+</div>
+
+<!-- GENERAL -->
+<div id="VGEN">
+<div class="main">
+  <div class="g4">
+    <div class="mc"><div class="lb">Total escobillas</div><div class="vl neu" id="G_TOT">—</div></div>
+    <div class="mc"><div class="lb">Normal</div><div class="vl neu" id="G_GRN">—</div></div>
+    <div class="mc"><div class="lb">&#9650; Alerta P3</div><div class="vl yw" id="G_YEL">—</div></div>
+    <div class="mc"><div class="lb">&#9650; Crítico P2</div><div class="vl rd" id="G_RED">—</div></div>
+  </div>
+
+  <!-- Resumen config operador -->
+  <div class="sec" id="CFG_SUMMARY">
+    <div class="sh"><span class="st"><i class="ti ti-info-circle"></i> Parámetros de operación</span><span class="bdg gy"><i class="ti ti-lock" style="font-size:9px"></i> Solo lectura</span></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px" id="CFG_SUMMARY_GRID"></div>
+  </div>
+
+  <!-- Panel config planta -->
+  <div class="sec" id="CFG_PLANT_PANEL" style="display:none">
+    <div class="sh"><span class="st"><i class="ti ti-building-factory"></i> Configuración de planta</span><span class="bdg bl"><i class="ti ti-lock-open" style="font-size:9px"></i> Configurador</span></div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="plant-section">
+        <div class="plant-section-title"><i class="ti ti-id-badge"></i> Datos generales</div>
+        <div class="cg3">
+          <div class="fr"><label>Nombre compañía minera</label><input class="inp" id="PC_COMPANY" placeholder="ej: Codelco"></div>
+          <div class="fr"><label>Faena / Ubicación</label><input class="inp" id="PC_FAENA" placeholder="ej: División El Teniente"></div>
+          <div class="fr"><label>Nombre proceso</label><input class="inp" id="PC_PROCESS" placeholder="ej: Planta concentradora"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end"><button class="btn ok" onclick="savePlantInfo()"><i class="ti ti-check"></i> Guardar datos generales</button></div>
+      </div>
+      <div class="plant-section">
+        <div class="plant-section-title"><i class="ti ti-engine"></i> Motores</div>
+        <div id="MOTOR_LIST" style="display:flex;flex-direction:column;gap:6px"></div>
+        <button class="btn ok" style="margin-top:4px;align-self:flex-start" onclick="addMotorRow()"><i class="ti ti-plus"></i> Agregar motor</button>
+        <div style="display:flex;justify-content:flex-end"><button class="btn ok" onclick="saveMotors()"><i class="ti ti-check"></i> Guardar motores</button></div>
+      </div>
+      <div class="plant-section">
+        <div class="plant-section-title"><i class="ti ti-users"></i> Técnicos operativos</div>
+        <div id="TECH_LIST" style="display:flex;flex-direction:column;gap:6px"></div>
+        <button class="btn ok" style="margin-top:4px;align-self:flex-start" onclick="addTechRow()"><i class="ti ti-plus"></i> Agregar técnico</button>
+        <div style="display:flex;justify-content:flex-end"><button class="btn ok" onclick="saveTechs()"><i class="ti ti-check"></i> Guardar técnicos</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel umbrales admin -->
+  <div class="sec" id="CFG_PANEL" style="display:none">
+    <div class="sh"><span class="st"><i class="ti ti-settings"></i> Configuración de umbrales</span><span class="bdg yw"><i class="ti ti-lock-open" style="font-size:9px"></i> Administrador</span></div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font-size:9px;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Desgaste</div>
+      <div class="cg3">
+        <div class="ci"><label>Longitud nominal (mm)</label><input type="range" id="S_NOM" min="40" max="120" value="80" step="5"><div class="cv"><span id="SV_NOM">80</span> mm · Vida útil <span id="SV_UL">44</span> mm</div></div>
+        <div class="ci"><label>Umbral alerta (%)</label><input type="range" id="S_THY" min="40" max="80" value="60" step="5"><div class="cv"><span id="SV_THY">60</span>%</div></div>
+        <div class="ci"><label>Umbral crítico (%)</label><input type="range" id="S_THR" min="10" max="40" value="30" step="5"><div class="cv"><span id="SV_THR">30</span>%</div></div>
+      </div>
+      <div style="font-size:9px;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Temperatura · Batería</div>
+      <div class="cg4">
+        <div class="ci"><label>Alerta temp. (°C)</label><input type="range" id="S_TTY" min="60" max="100" value="80" step="5"><div class="cv"><span id="SV_TTY">80</span> °C</div></div>
+        <div class="ci"><label>Crítico temp. (°C)</label><input type="range" id="S_TTR" min="90" max="130" value="110" step="5"><div class="cv"><span id="SV_TTR">110</span> °C</div></div>
+        <div class="ci"><label>Batería baja (%)</label><input type="range" id="S_TB" min="15" max="40" value="20" step="5"><div class="cv"><span id="SV_TB">20</span>%</div></div>
+        <div class="ci"><label>Descarga batería (%/día)</label><input type="range" id="S_BD" min="0.5" max="5" value="1" step="0.5"><div class="cv"><span id="SV_BD">1</span> %/día</div></div>
+      </div>
+      <div style="font-size:9px;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Señal sensor</div>
+      <div class="cg3">
+        <div class="ci"><label>Umbral espera señal (horas)</label><input type="range" id="S_SN" min="4" max="12" value="8" step="1"><div class="cv">Amarillo &gt;4h · Rojo &gt;<span id="SV_SN">8</span>h</div></div>
+      </div>
+      <div style="font-size:9px;color:var(--txt2);font-weight:700;text-transform:uppercase;letter-spacing:.5px">Simulación</div>
+      <div class="cg2">
+        <div class="ci"><label>Intervalo visual (min)</label><input type="range" id="S_INT" min="5" max="30" value="20" step="5"><div class="cv"><span id="SV_INT">20</span> min</div></div>
+        <div class="ci"><label>Ciclo real entre mediciones</label>
+          <select class="sel" id="S_CYC" onchange="updCyc()" style="margin-top:4px">
+            <option value="0.5">30 minutos</option><option value="1">1 hora</option>
+            <option value="1.5">1 hora 30 min</option><option value="2">2 horas</option>
+          </select>
+          <div class="cv" id="SV_CYC">30 min / ciclo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="sec">
+      <div class="sh"><span class="st"><i class="ti ti-engine"></i> Estado por motor</span><span style="font-size:9px;color:var(--txt2)" id="G_MOTOR_COUNT">—</span></div>
+      <table><thead><tr><th>Motor</th><th>Prom. mm</th><th>Desgaste</th><th>Temp. máx</th><th>Bat. mín</th><th>Alarmas</th><th></th></tr></thead>
+      <tbody id="G_MTBL"></tbody></table>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="sec"><div class="sh"><span class="st"><i class="ti ti-bell"></i> Alarmas activas</span></div><div id="G_ALRT"></div></div>
+      <div class="sec">
+        <div class="sh"><span class="st"><i class="ti ti-chart-line"></i> Tendencia promedio</span><select class="sel" id="G_MSEL"></select></div>
+        <div class="lgr"><span class="lgi"><span class="lgd" style="background:var(--neu)"></span>Desgaste</span><span class="lgi"><span class="lgd" style="background:var(--p3)"></span>Alerta</span><span class="lgi"><span class="lgd" style="background:var(--p2)"></span>Crítico</span></div>
+        <div class="cw"><canvas id="G_TRCH"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- DETALLE -->
+<div id="VDET" style="display:none">
+<div class="main">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <button class="btn" onclick="showGen()"><i class="ti ti-arrow-left"></i> Volver</button>
+    <span style="font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px" id="BREAD"></span>
+    <div class="tabs" style="margin-left:auto">
+      <button class="tab on" id="TAB_EST" onclick="switchTab('est')">Estado</button>
+      <button class="tab" id="TAB_MNT" onclick="switchTab('mnt')">Proyección</button>
+      <button class="tab" id="TAB_HST" onclick="switchTab('hst')">Historial</button>
+    </div>
+    <button class="btn ok" onclick="openModal()"><i class="ti ti-plus"></i> Reemplazo</button>
+    <button class="btn" onclick="exportXLS()"><i class="ti ti-file-spreadsheet"></i> Excel</button>
+  </div>
+
+  <div id="VEST">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="g6">
+        <div class="mc"><div class="lb">Escobillas</div><div class="vl neu" id="D_TOT">—</div></div>
+        <div class="mc" id="MC_neu" style="cursor:pointer" onclick="setFilter('neu')"><div class="lb">Normal</div><div class="vl neu" id="D_GRN">—</div></div>
+        <div class="mc" id="MC_yw" style="cursor:pointer" onclick="setFilter('yw')"><div class="lb">&#9650; Alerta P3</div><div class="vl yw" id="D_YEL">—</div></div>
+        <div class="mc" id="MC_rd" style="cursor:pointer" onclick="setFilter('rd')"><div class="lb">&#9650; Crítico P2</div><div class="vl rd" id="D_RED">—</div></div>
+        <div class="mc" id="MC_tmp" style="cursor:pointer" onclick="setFilter('tmp')"><div class="lb">&#9650; Temp. máx.</div><div class="vl yw" id="D_TMX">—</div></div>
+        <div class="mc" id="MC_bat" style="cursor:pointer" onclick="setFilter('bat')"><div class="lb">&#9650; Bat. mín.</div><div class="vl yw" id="D_BMN">—</div></div>
+      </div>
+      <div class="g3" id="D_PHGRID"></div>
+      <div class="g2">
+        <div class="sec">
+          <div class="sh"><span class="st"><i class="ti ti-chart-bar"></i> Comparativo por fase</span>
+            <select class="sel" id="D_PMET" onchange="updPhCh()"><option value="wear">Desgaste (mm)</option><option value="temp">Temperatura (°C)</option><option value="batt">Batería (%)</option></select>
+          </div>
+          <div class="cwsm"><canvas id="D_PHCH"></canvas></div>
+        </div>
+        <div class="sec"><div class="sh"><span class="st"><i class="ti ti-bell"></i> Alarmas del motor</span></div><div id="D_ALRT"></div></div>
+      </div>
+      <div class="sec">
+        <div class="sh"><span class="st"><i class="ti ti-chart-line"></i> Tendencia por fase</span>
+          <select class="sel" id="D_TMET" onchange="updPhTr()"><option value="wear">Desgaste (mm)</option><option value="temp">Temperatura (°C)</option></select>
+        </div>
+        <div class="lgr">
+          <span class="lgi"><span class="lgd" style="background:#378add"></span>Fase R</span>
+          <span class="lgi"><span class="lgd" style="background:#639922"></span>Fase S</span>
+          <span class="lgi"><span class="lgd" style="background:#ef9f27"></span>Fase T</span>
+        </div>
+        <div class="cw"><canvas id="D_TRCH"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="VMNT" style="display:none">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="g4">
+        <div class="mc"><div class="lb">Reemplazos este mes</div><div class="vl bl" id="M_THIS">—</div></div>
+        <div class="mc"><div class="lb">Reemplazos próx. mes</div><div class="vl neu" id="M_NEXT">—</div></div>
+        <div class="mc"><div class="lb">Intervención más urgente</div><div class="vl rd" id="M_URG">—</div></div>
+        <div class="mc"><div class="lb">Vida útil promedio</div><div class="vl neu" id="M_AVG">—</div></div>
+      </div>
+      <div class="sec">
+        <div class="sh"><span class="st"><i class="ti ti-calendar"></i> Calendario de reemplazos proyectados</span></div>
+        <div style="overflow-x:auto"><table id="M_TBL"><thead></thead><tbody id="M_TBODY"></tbody></table></div>
+      </div>
+      <div class="sec"><div class="sh"><span class="st"><i class="ti ti-chart-bar"></i> Reemplazos proyectados por mes</span></div><div class="cw"><canvas id="M_CHTM"></canvas></div></div>
+    </div>
+  </div>
+
+  <div id="VHST" style="display:none">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div class="g4">
+        <div class="mc"><div class="lb">Total reemplazos</div><div class="vl bl" id="H_TOT">—</div></div>
+        <div class="mc"><div class="lb">Este mes</div><div class="vl neu" id="H_MON">—</div></div>
+        <div class="mc"><div class="lb">Último reemplazo</div><div class="vl neu" id="H_LST" style="font-size:15px">—</div></div>
+        <div class="mc"><div class="lb">Técnico más activo</div><div class="vl neu" id="H_TEC" style="font-size:15px">—</div></div>
+      </div>
+      <div class="sec">
+        <div class="sh"><span class="st"><i class="ti ti-history"></i> Registro de reemplazos</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <select class="sel" id="HF_PH" onchange="rendHist()"><option value="">Todas las fases</option></select>
+            <select class="sel" id="HF_RE" onchange="rendHist()"><option value="">Todos los motivos</option><option value="programado">Programado</option><option value="critico">Crítico</option><option value="preventivo">Preventivo</option><option value="temperatura">Temperatura</option><option value="bateria">Batería</option></select>
+          </div>
+        </div>
+        <div id="H_EMPTY" style="font-size:11px;color:var(--txt2);padding:12px 0;text-align:center;display:none"><i class="ti ti-inbox" style="font-size:22px;display:block;margin-bottom:6px"></i>Sin registros</div>
+        <table id="H_TBL" style="display:none"><thead><tr><th>Fecha</th><th>Fase</th><th>Escobilla</th><th>Tipo</th><th>Mm ret.</th><th>Mm inst.</th><th>Motivo</th><th>Técnico</th><th>Obs.</th></tr></thead><tbody id="H_TBODY"></tbody></table>
+      </div>
+      <div class="sec" id="H_CHSEC" style="display:none"><div class="sh"><span class="st"><i class="ti ti-chart-bar"></i> Reemplazos por mes</span></div><div class="cw"><canvas id="H_CHTM"></canvas></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+// ── ROLES ─────────────────────────────────────────────────────────────────────
+const ROLE_USERS={cfg:[{user:'config',pass:'cfg123',name:'Configurador'}],admin:[{user:'admin',pass:'admin123',name:'Administrador'}]};
+let IS_CFG=false,IS_ADMIN=false,pendingRole=null;
+
+function openRoleModal(role){
+  pendingRole=role;
+  document.getElementById('R_USER').value='';
+  document.getElementById('R_PASS').value='';
+  document.getElementById('R_ERR').style.display='none';
+  document.getElementById('ROLE_MODAL_TITLE').innerHTML=role==='admin'?'<i class="ti ti-lock"></i> Acceso administrador':'<i class="ti ti-building-factory"></i> Acceso configurador';
+  document.getElementById('MODAL_ROLE').style.display='flex';
+  setTimeout(()=>document.getElementById('R_USER').focus(),100);
+}
+function closeRoleModal(){document.getElementById('MODAL_ROLE').style.display='none';pendingRole=null;}
+function doRoleLogin(){
+  const u=document.getElementById('R_USER').value.trim();
+  const p=document.getElementById('R_PASS').value;
+  const found=(ROLE_USERS[pendingRole]||[]).find(x=>x.user===u&&x.pass===p);
+  if(!found){document.getElementById('R_ERR').style.display='block';document.getElementById('R_PASS').value='';return;}
+  const role=pendingRole;
+  closeRoleModal();
+  if(role==='cfg'){
+    IS_CFG=true;
+    document.getElementById('CFG_PLANT_PANEL').style.display='block';
+    document.getElementById('CFG_PANEL').style.display='none';
+    document.getElementById('BTN_CFG_WRAP').style.display='none';
+    document.getElementById('BTN_CFG_LOGOUT').style.display='block';
+    document.getElementById('ROLE_BADGE').innerHTML='<i class="ti ti-building-factory" style="color:var(--accent)"></i><span style="color:var(--accent)">'+found.name+'</span>';
+    document.getElementById('PC_COMPANY').value=PLANT.company||'';
+    document.getElementById('PC_FAENA').value=PLANT.faena||'';
+    document.getElementById('PC_PROCESS').value=PLANT.process||'';
+    rendMotorList();rendTechList();
+  } else {
+    IS_ADMIN=true;
+    document.getElementById('CFG_PANEL').style.display='block';
+    document.getElementById('CFG_PLANT_PANEL').style.display='none';
+    document.getElementById('BTN_ADMIN_WRAP').style.display='none';
+    document.getElementById('BTN_ADMIN_LOGOUT').style.display='block';
+    document.getElementById('ROLE_BADGE').innerHTML='<i class="ti ti-shield-check" style="color:var(--ok)"></i><span style="color:var(--ok)">'+found.name+'</span>';
+  }
+}
+function doLogout(role){
+  if(role==='cfg'){IS_CFG=false;document.getElementById('CFG_PLANT_PANEL').style.display='none';document.getElementById('BTN_CFG_WRAP').style.display='block';document.getElementById('BTN_CFG_LOGOUT').style.display='none';}
+  else{IS_ADMIN=false;document.getElementById('CFG_PANEL').style.display='none';document.getElementById('BTN_ADMIN_WRAP').style.display='block';document.getElementById('BTN_ADMIN_LOGOUT').style.display='none';}
+  if(!IS_CFG&&!IS_ADMIN) document.getElementById('ROLE_BADGE').innerHTML='<i class="ti ti-user-circle"></i><span>Operador</span>';
+  else if(IS_CFG) document.getElementById('ROLE_BADGE').innerHTML='<i class="ti ti-building-factory" style="color:var(--accent)"></i><span style="color:var(--accent)">Configurador</span>';
+}
+
+// ── PLANTA ────────────────────────────────────────────────────────────────────
+let PLANT={company:'',faena:'',process:''};
+let TECHS_LIST=['C. Ramírez','J. Flores','M. Soto','P. Lagos'];
+
+function updTopbar(){
+  const t=PLANT.company?'Monitor de escobillas — '+PLANT.company:'Monitor de escobillas';
+  const s=[PLANT.faena,PLANT.process].filter(Boolean).join(' · ')||'Motores de molinos · Minería';
+  document.getElementById('TTL').textContent=t;
+  document.getElementById('SUB').textContent=s;
+}
+function savePlantInfo(){
+  PLANT.company=document.getElementById('PC_COMPANY').value.trim();
+  PLANT.faena=document.getElementById('PC_FAENA').value.trim();
+  PLANT.process=document.getElementById('PC_PROCESS').value.trim();
+  updTopbar();rendCfgSummary();showToast('Datos generales guardados');
+}
+
+// ── MOTORES ───────────────────────────────────────────────────────────────────
+let MOTORS=[
+  {id:'SAG-01',type:'SAG', rate:1.8,st:'run',phases:3,brushPerPhase:5,seed:[[72,58,44],[68,62,50],[75,55,48]]},
+  {id:'SAG-02',type:'SAG', rate:2.1,st:'run',phases:3,brushPerPhase:5,seed:[[50,48,55],[44,52,46],[58,40,53]]},
+  {id:'SAG-03',type:'SAG', rate:1.5,st:'run',phases:3,brushPerPhase:5,seed:[[38,42,35],[40,36,44],[33,45,38]]},
+  {id:'BOL-01',type:'Bolas',rate:1.2,st:'run',phases:3,brushPerPhase:5,seed:[[76,70,68],[72,74,65],[78,66,70]]},
+  {id:'BOL-02',type:'Bolas',rate:2.0,st:'run',phases:3,brushPerPhase:5,seed:[[25,28,22],[30,20,26],[24,32,18]]},
+  {id:'BOL-03',type:'Bolas',rate:1.6,st:'run',phases:3,brushPerPhase:5,seed:[[62,58,55],[60,64,52],[65,56,58]]},
+  {id:'BOL-04',type:'Bolas',rate:0,  st:'off',phases:3,brushPerPhase:5,seed:[[0,0,0],[0,0,0],[0,0,0]]},
+  {id:'SAG-04',type:'SAG', rate:1.9,st:'run',phases:3,brushPerPhase:5,seed:[[33,30,36],[28,35,32],[36,25,34]]},
+  {id:'MAQUETA',type:'ESP32',rate:0,st:'run',phases:1,brushPerPhase:1,seed:[[55]],isMaqueta:true},
+];
+
+function rendMotorList(){
+  const list=document.getElementById('MOTOR_LIST');list.innerHTML='';
+  MOTORS.forEach((m,idx)=>{
+    const row=document.createElement('div');row.className='motor-row';
+    row.innerHTML='<input value="'+m.id+'" placeholder="ID motor" style="max-width:90px" data-field="id" data-idx="'+idx+'"><select data-field="type" data-idx="'+idx+'"><option'+(m.type==='SAG'?' selected':'')+'>SAG</option><option'+(m.type==='Bolas'?' selected':'')+'>Bolas</option><option'+(m.type==='Otro'?' selected':'')+'>Otro</option></select><select data-field="st" data-idx="'+idx+'"><option value="run"'+(m.st==='run'?' selected':'')+'>Activo</option><option value="off"'+(m.st==='off'?' selected':'')+'>Fuera servicio</option></select><div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--txt2)">Fases:<select data-field="phases" data-idx="'+idx+'" style="max-width:55px"><option'+(m.phases===2?' selected':'')+'>2</option><option'+(m.phases===3?' selected':'')+'>3</option></select></div><div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--txt2)">Esc/fase:<input type="number" min="1" max="10" value="'+m.brushPerPhase+'" data-field="brushPerPhase" data-idx="'+idx+'" style="max-width:50px"></div><div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--txt2)">mm/día:<input type="number" min="0" max="10" step="0.1" value="'+m.rate+'" data-field="rate" data-idx="'+idx+'" style="max-width:55px"></div><button class="btn danger" onclick="removeMotor('+idx+')" style="margin-left:auto"><i class="ti ti-trash"></i></button>';
+    list.appendChild(row);
+  });
+}
+function addMotorRow(){MOTORS.push({id:'NUEVO-'+(MOTORS.length+1),type:'SAG',rate:1.5,st:'run',phases:3,brushPerPhase:5,seed:[]});rendMotorList();}
+function removeMotor(idx){if(MOTORS.length<=1){showToast('Debe haber al menos un motor');return;}MOTORS.splice(idx,1);rendMotorList();}
+function saveMotors(){
+  document.querySelectorAll('#MOTOR_LIST [data-field]').forEach(el=>{
+    const f=el.dataset.field,i=+el.dataset.idx;
+    MOTORS[i][f]=(f==='rate'||f==='phases'||f==='brushPerPhase')?+el.value:el.value;
+  });
+  initData();rendAll();buildMSel();showToast('Motores guardados');
+}
+
+function rendTechList(){
+  const list=document.getElementById('TECH_LIST');list.innerHTML='';
+  TECHS_LIST.forEach((t,idx)=>{
+    const row=document.createElement('div');row.className='tech-row';
+    row.innerHTML='<input value="'+t+'" placeholder="Nombre técnico" data-idx="'+idx+'"><button class="btn danger" onclick="removeTech('+idx+')"><i class="ti ti-trash"></i></button>';
+    list.appendChild(row);
+  });
+}
+function addTechRow(){TECHS_LIST.push('');rendTechList();}
+function removeTech(idx){if(TECHS_LIST.length<=1){showToast('Debe haber al menos un técnico');return;}TECHS_LIST.splice(idx,1);rendTechList();}
+function saveTechs(){TECHS_LIST=Array.from(document.querySelectorAll('#TECH_LIST input')).map(i=>i.value.trim()).filter(Boolean);rendTechList();showToast('Técnicos guardados');}
+
+function showToast(msg){
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:20px;right:20px;background:var(--bg3);color:var(--txt1);padding:8px 14px;border-radius:2px;font-size:11px;z-index:999;opacity:0;transition:opacity .3s;border:1px solid var(--border);text-transform:uppercase;letter-spacing:.4px';
+  t.textContent=msg;document.body.appendChild(t);
+  setTimeout(()=>t.style.opacity='1',10);
+  setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},2500);
+}
+
+// ── ALARMAS ISA-18.2 ──────────────────────────────────────────────────────────
+// Prioridades: P1=emergencia(magenta) P2=crítico(rojo) P3=alerta(amarillo) P4=info(azul)
+// Regla: solo la peor alarma por escobilla (sin redundancia)
+const P1_COL='#ff00ff', P2_COL='var(--p2)', P3_COL='var(--p3)', P4_COL='var(--accent)';
+let ACK_SET=new Set(); // IDs de alarmas reconocidas
+
+function alarmId(motorId,pi,bi,type){return motorId+'-'+pi+'-'+bi+'-'+type;}
+
+function getAlarms(){
+  const alarms=[];
+  MOTORS.forEach(m=>{
+    if(m.st==='off'||!MD[m.id]) return;
+    const ph=getPhases(m);
+    MD[m.id].forEach((phase,pi)=>phase.forEach((b,bi)=>{
+      const ws=wSt(b.mm,m.st),ts=tSt(b.temp,m.st),bs=bSt(b.batt,m.st);
+      const sig=sigSt(b.lastSeen);
+      const loc=m.id+' · Fase '+ph[pi]+' · Esc.'+(bi+1);
+      const candidates=[];
+      // Desgaste
+      if(ws==='rd') candidates.push({pri:2,type:'wear',col:P2_COL,loc,msg:'Desgaste crítico: '+fmt1(b.mm)+' mm',action:'Reemplazo inmediato'});
+      else if(ws==='yw') candidates.push({pri:3,type:'wear',col:P3_COL,loc,msg:'Alerta desgaste: '+fmt1(b.mm)+' mm',action:'Programar reemplazo'});
+      // Temperatura
+      if(ts==='rd') candidates.push({pri:2,type:'temp',col:P2_COL,loc,msg:'Temperatura crítica: '+b.temp+'°C',action:'Verificar refrigeración'});
+      else if(ts==='yw') candidates.push({pri:3,type:'temp',col:P3_COL,loc,msg:'Temp. elevada: '+b.temp+'°C',action:'Monitorear'});
+      // Batería
+      if(bs==='rd') candidates.push({pri:2,type:'batt',col:P2_COL,loc,msg:'Batería crítica: '+b.batt+'%',action:'Reemplazar sensor'});
+      else if(bs==='yw') candidates.push({pri:4,type:'batt',col:P4_COL,loc,msg:'Batería baja: '+b.batt+'%',action:'Programar recarga'});
+      // Señal
+      if(sig.st==='rd') candidates.push({pri:2,type:'sig',col:P2_COL,loc,msg:'Señal perdida ('+fmtAgo(sig.hoursAgo)+')',action:'Verificar sensor urgente'});
+      else if(sig.st==='yw') candidates.push({pri:3,type:'sig',col:P3_COL,loc,msg:'Esperando actualización ('+fmtAgo(sig.hoursAgo)+')',action:'Verificar conectividad'});
+      // ISA-18.2: solo la peor alarma por escobilla (sin redundancia)
+      if(candidates.length>0){
+        const worst=candidates.sort((a,b)=>a.pri-b.pri)[0];
+        const id=alarmId(m.id,pi,bi,worst.type);
+        alarms.push({...worst,id,acked:ACK_SET.has(id),motorId:m.id,pi,bi});
+      }
+    }));
+  });
+  return alarms.sort((a,b)=>a.pri-b.pri||a.loc.localeCompare(b.loc));
+}
+
+function ackAlarm(id){
+  ACK_SET.add(id);rendAll();
+}
+function ackAll(){
+  getAlarms().forEach(a=>ACK_SET.add(a.id));rendAll();
+}
+
+function updAlarmBar(){
+  const alarms=getAlarms().filter(a=>!a.acked);
+  const p1=alarms.filter(a=>a.pri===1).length;
+  const p2=alarms.filter(a=>a.pri===2).length;
+  const p3=alarms.filter(a=>a.pri===3).length;
+  document.getElementById('ALM_P1').style.display=p1?'inline':'none';
+  document.getElementById('ALM_P2').style.display=p2?'inline':'none';
+  document.getElementById('ALM_P3').style.display=p3?'inline':'none';
+  document.getElementById('ALM_OK').style.display=(!p1&&!p2&&!p3)?'inline':'none';
+  if(p1) document.getElementById('ALM_P1_N').textContent=p1;
+  if(p2) document.getElementById('ALM_P2_N').textContent=p2;
+  if(p3) document.getElementById('ALM_P3_N').textContent=p3;
+  // Borde topbar parpadeante si hay P2+
+  document.querySelector('.topbar').style.borderBottom=(p1||p2)?'2px solid '+(p1?P1_COL:'var(--p2)'):'1px solid var(--border)';
+}
+const REASONS=['programado','preventivo','critico','temperatura'];
+let NOM=80,THY=0.6,THR=0.3,TTY=80,TTR=110,TB=20,BD=1,SIG_N=8;
+let SIM_SECS=1200,SIM_HRS=0.5;
+let MD={},HIST={},RECS={};
+let CUR=null,CURTAB='est',FILTER=null;
+let simOn=true,simT=null,simPT=null,simProg=0;
+let chG=null,chPh=null,chTr=null,chM=null,chH=null;
+let CARDS=[];
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const rnd=(a,b)=>Math.round(a+Math.random()*(b-a));
+const UL_PCT=0.55,IM_PCT=0.20;
+const ulMm=()=>NOM*UL_PCT;
+const imMm=()=>ulMm()+(NOM-ulMm())*IM_PCT;
+const wSt=(mm,st)=>st==='off'?'gy':mm/NOM>=THY?'neu':mm/NOM>=THR?'yw':'rd';
+const tSt=(t,st)=>st==='off'?'gy':t<TTY?'neu':t<TTR?'yw':'rd';
+const bSt=(b,st)=>st==='off'?'gy':b>TB*2?'neu':b>TB?'yw':'rd';
+const stLbl=s=>({neu:'Normal',yw:'Alerta',rd:'Crítico',gy:'Fuera de servicio'})[s]||s;
+const pct=(mm,st)=>st==='off'?0:Math.min(100,Math.round(mm/NOM*100));
+const fmt1=v=>Number(v).toFixed(1);
+const wDays=(mm,rate)=>{const r=mm-imMm();return r<=0?0:Math.round(r/(rate*SIM_HRS/24));};
+const bDays=b=>{const r=b-TB;return r<=0?0:Math.round(r/BD);};
+const combined=(mm,rate,b)=>{
+  const wd=wDays(mm,rate),bd=bDays(b),days=Math.min(wd,bd);
+  const both=Math.abs(wd-bd)<=7;
+  return{days,wd,bd,cause:both?'desgaste y batería':wd<=bd?'desgaste':'batería'};
+};
+const urgCls=d=>d<=7?'rd':d<=30?'yw':'neu';
+const urgLbl=d=>d<=7?'Crítico':d<=30?'Alerta':'Normal';
+const fmtDate=d=>d.toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
+const getPhases=m=>Array.from({length:m.phases||3},(_,i)=>['R','S','T','U','V'][i]);
+
+// ── INDICADORES ISA-101 ───────────────────────────────────────────────────────
+function wearBar(mm,st){
+  const ws=wSt(mm,st);
+  const p=pct(mm,st);
+  const col=ws==='rd'?'var(--p2)':ws==='yw'?'var(--p3)':'var(--neu)';
+  const tyP=Math.round(THY*100);
+  const trP=Math.round(THR*100);
+  return '<div style="position:relative;height:10px;background:var(--bg3);overflow:visible;margin:3px 0">'
+    +'<div style="position:absolute;left:0;top:0;height:100%;width:'+p+'%;background:'+col+';transition:width .3s"></div>'
+    +'<div title="Alerta '+tyP+'%" style="position:absolute;left:'+tyP+'%;top:-3px;height:16px;width:1px;background:var(--p3);opacity:.8"></div>'
+    +'<div title="Crítico '+trP+'%" style="position:absolute;left:'+trP+'%;top:-3px;height:16px;width:1px;background:var(--p2);opacity:.8"></div>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:8px;color:var(--txt3);font-family:var(--fd);margin-top:1px">'
+    +'<span>'+fmt1(mm)+' mm</span><span>'+p+'%</span></div>';
+}
+
+function battBar(batt,st){
+  const bs=bSt(batt,st);
+  const col=bs==='rd'?'var(--p2)':bs==='yw'?'var(--p3)':'var(--neu)';
+  return '<div style="position:relative;height:6px;background:var(--bg3);overflow:visible;margin:2px 0">'
+    +'<div style="position:absolute;left:0;top:0;height:100%;width:'+batt+'%;background:'+col+';transition:width .3s"></div>'
+    +'<div title="Bat. baja '+TB+'%" style="position:absolute;left:'+TB+'%;top:-2px;height:10px;width:1px;background:var(--p3);opacity:.8"></div>'
+    +'</div>'
+    +'<div style="font-size:8px;color:var(--txt3);font-family:var(--fd);margin-top:1px;text-align:right">'+(batt===0?'SIN SEÑAL':batt+'%')+'</div>';
+}
+
+function tempBar(temp,st){
+  const ts=tSt(temp,st);
+  const col=ts==='rd'?'var(--p2)':ts==='yw'?'var(--p3)':'var(--neu)';
+  const maxT=TTR+20;
+  const p=Math.min(100,Math.round(temp/maxT*100));
+  const tyP=Math.round(TTY/maxT*100);
+  const trP=Math.round(TTR/maxT*100);
+  return '<div style="position:relative;height:6px;background:var(--bg3);overflow:visible;margin:2px 0">'
+    +'<div style="position:absolute;left:0;top:0;height:100%;width:'+p+'%;background:'+col+';transition:width .3s"></div>'
+    +'<div title="Alerta '+TTY+'°C" style="position:absolute;left:'+tyP+'%;top:-2px;height:10px;width:1px;background:var(--p3);opacity:.8"></div>'
+    +'<div title="Crítico '+TTR+'°C" style="position:absolute;left:'+trP+'%;top:-2px;height:10px;width:1px;background:var(--p2);opacity:.8"></div>'
+    +'</div>'
+    +'<div style="font-size:8px;color:var(--txt3);font-family:var(--fd);margin-top:1px;text-align:right">'+temp+'°C</div>';
+}
+
+function sigSt(lastSeen){
+  const h=(Date.now()-(lastSeen||Date.now()))/3600000;
+  if(h<4) return{st:'neu',hoursAgo:h,label:'Señal OK',color:'var(--txt2)'};
+  if(h<SIG_N) return{st:'yw',hoursAgo:h,label:'Esperando actualización',color:'var(--p3)'};
+  return{st:'rd',hoursAgo:h,label:'Señal perdida',color:'var(--p2)'};
+}
+function fmtAgo(h){if(h<1/60) return 'ahora';if(h<1) return Math.round(h*60)+'min';return h.toFixed(1)+'h';}
+function fmtLastSeen(ts){return new Date(ts).toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+
+// ── FILTRO ────────────────────────────────────────────────────────────────────
+function setFilter(f){
+  FILTER=(FILTER===f)?null:f;
+  ['neu','yw','rd','tmp','bat'].forEach(k=>{
+    const el=document.getElementById('MC_'+k);if(!el) return;
+    el.style.outline=FILTER===k?'2px solid var(--p3)':'none';
+    el.style.opacity=(FILTER&&FILTER!==k)?'0.35':'1';
+  });
+  applyFilter();
+}
+function applyFilter(){
+  CARDS.forEach(c=>{
+    if(!FILTER){c.el.style.opacity='1';c.el.style.transform='none';return;}
+    let m=false;
+    if(FILTER==='neu') m=c.ws==='neu';
+    else if(FILTER==='yw') m=c.ws==='yw';
+    else if(FILTER==='rd') m=c.ws==='rd';
+    else if(FILTER==='tmp') m=c.temp>=TTY;
+    else if(FILTER==='bat') m=c.batt<=TB;
+    c.el.style.opacity=m?'1':'0.15';
+    c.el.style.transform=m?'none':'scale(0.97)';
+  });
+}
+
+// ── CFG SUMMARY ───────────────────────────────────────────────────────────────
+function rendCfgSummary(){
+  const items=[
+    {icon:'ti-building-factory',label:'Compañía',value:PLANT.company||'—'},
+    {icon:'ti-map-pin',label:'Faena',value:PLANT.faena||'—'},
+    {icon:'ti-settings-2',label:'Proceso',value:PLANT.process||'—'},
+    {icon:'ti-ruler',label:'Long. nominal',value:NOM+' mm'},
+    {icon:'ti-alert-triangle',label:'Umbral alerta',value:Math.round(NOM*THY)+' mm ('+Math.round(THY*100)+'%)'},
+    {icon:'ti-alert-octagon',label:'Umbral crítico',value:Math.round(NOM*THR)+' mm ('+Math.round(THR*100)+'%)'},
+    {icon:'ti-temperature',label:'Temp. alerta',value:TTY+'°C'},
+    {icon:'ti-wifi-2',label:'Espera señal',value:'>'+SIG_N+'h'},
+  ];
+  document.getElementById('CFG_SUMMARY_GRID').innerHTML=items.map(i=>'<div class="sum-item"><div class="si-lbl"><i class="ti '+i.icon+'" style="font-size:10px"></i>'+i.label+'</div><div class="si-val">'+i.value+'</div></div>').join('');
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+function initData(){
+  MD={};HIST={};
+  MOTORS.forEach(m=>{
+    if(!RECS[m.id]) RECS[m.id]=seedRecs(m);
+    const ph=getPhases(m);
+    const bpf=m.brushPerPhase||5;
+    const seed=m.seed&&m.seed.length>=ph.length?m.seed:ph.map(()=>Array.from({length:bpf},()=>rnd(25,75)));
+    MD[m.id]=ph.map((_,pi)=>Array.from({length:bpf},(_2,bi)=>{
+      if(m.st==='off') return{mm:0,temp:0,batt:100,lastSeen:Date.now()};
+      if(m.isMaqueta) return{mm:NOM,temp:25,batt:100,lastSeen:Date.now()-99999999}; // sin señal hasta MQTT
+      const base=(seed[pi]&&seed[pi][bi%seed[pi].length])||rnd(30,75);
+      const mm=Math.max(ulMm()+1,Math.min(NOM+5,base+rnd(-6,6)));
+      const wp=mm/NOM;
+      const temp=Math.round((wp>THY?rnd(45,75):wp>THR?rnd(70,105):rnd(95,130))+rnd(-4,4));
+      const lastSeen=Date.now()-rnd(0,3)*SIM_HRS*3600000;
+      return{mm,temp,batt:rnd(15,95),lastSeen};
+    }));
+    HIST[m.id]=[];
+    const avg=avgMm(m);
+    for(let i=8;i>=0;i--) HIST[m.id].push(+(avg+m.rate*i*SIM_HRS).toFixed(1));
+  });
+}
+function seedRecs(m){
+  if(m.st==='off') return[];
+  const out=[];const today=new Date();
+  const ph=getPhases(m);
+  for(let i=0;i<rnd(3,8);i++){
+    const d=new Date(today);d.setDate(d.getDate()-rnd(1,180));
+    out.push({date:d.toISOString().slice(0,10),phase:ph[rnd(0,ph.length-1)],brush:rnd(1,m.brushPerPhase||5),mmOut:rnd(20,40),mmIn:NOM,type:'escobilla',reason:REASONS[rnd(0,3)],tech:TECHS_LIST[rnd(0,TECHS_LIST.length-1)],obs:''});
+  }
+  return out.sort((a,b)=>b.date.localeCompare(a.date));
+}
+function avgMm(m){
+  if(m.st==='off'||!MD[m.id]) return 0;
+  const all=MD[m.id].flat();
+  return Math.round(all.reduce((a,b)=>a+b.mm,0)/all.length);
+}
+function mSum(m){
+  if(m.st==='off'||!MD[m.id]) return{avg:0,maxT:0,minB:100,ws:'gy',wp:0,nRed:0,nYel:0};
+  const b=MD[m.id].flat();
+  const avg=Math.round(b.reduce((a,x)=>a+x.mm,0)/b.length);
+  const maxT=Math.max(...b.map(x=>x.temp));
+  const minB=Math.min(...b.map(x=>x.batt));
+  const ws=wSt(avg,m.st),wp=pct(avg,m.st);
+  const nRed=b.filter(x=>wSt(x.mm,m.st)==='rd'||tSt(x.temp,m.st)==='rd').length;
+  const nYel=b.filter(x=>wSt(x.mm,m.st)==='yw'||tSt(x.temp,m.st)==='yw'||bSt(x.batt,m.st)==='yw').length;
+  return{avg,maxT,minB,ws,wp,nRed,nYel};
+}
+
+// ── SIMULACIÓN ────────────────────────────────────────────────────────────────
+function simCycle(){
+  MOTORS.forEach(m=>{
+    if(m.st==='off'||!MD[m.id]) return;
+    if(m.isMaqueta) return; // MAQUETA usa datos reales vía MQTT, no simular
+    MD[m.id].forEach(ph=>ph.forEach(b=>{
+      b.mm=Math.max(ulMm(),+(b.mm-(m.rate*SIM_HRS/24)*(0.7+Math.random()*0.6)).toFixed(1));
+      const wp=b.mm/NOM;
+      b.temp=Math.round((wp>THY?rnd(45,78):wp>THR?rnd(72,108):rnd(100,132))+rnd(-4,4));
+      b.batt=Math.max(5,Math.round(b.batt-rnd(0,2)));
+      if(Math.random()<0.85) b.lastSeen=Date.now();
+    }));
+    HIST[m.id].push(+avgMm(m).toFixed(1));
+    if(HIST[m.id].length>20) HIST[m.id].shift();
+  });
+  rendAll();
+}
+function startSim(){
+  clearInterval(simT);clearInterval(simPT);simProg=0;
+  simT=setInterval(()=>{simCycle();simProg=0;},SIM_SECS*1000);
+  simPT=setInterval(()=>{
+    simProg=Math.min(100,simProg+(100/(SIM_SECS*10)));
+    document.getElementById('SPF').style.width=simProg+'%';
+    document.getElementById('SCD').textContent=Math.max(0,Math.round(SIM_SECS*(1-simProg/100)))+'s';
+  },100);
+}
+function toggleSim(){
+  simOn=!simOn;
+  document.getElementById('SICO').className=simOn?'ti ti-player-pause':'ti ti-player-play';
+  document.getElementById('SLBL').textContent=simOn?'Pausar':'Reanudar';
+  simOn?startSim():(clearInterval(simT),clearInterval(simPT));
+}
+function updCyc(){
+  SIM_HRS=+document.getElementById('S_CYC').value;
+  const L={0.5:'30 min',1:'1 hora',1.5:'1h 30min',2:'2 horas'};
+  document.getElementById('SV_CYC').textContent=(L[SIM_HRS]||SIM_HRS)+' / ciclo';
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────────────────────
+function rendAll(){
+  rendGen();
+  if(CUR){
+    if(CURTAB==='est') rendDet();
+    else if(CURTAB==='mnt') rendMnt();
+    else rendHist();
+  }
+}
+
+// ── GENERAL ───────────────────────────────────────────────────────────────────
+function updAlarmBar(){
+  const alarms=getAlarms();
+  const unacked=alarms.filter(a=>!a.acked);
+  const p2=unacked.filter(a=>a.pri===2).length;
+  const p3=unacked.filter(a=>a.pri===3).length;
+  const p4=unacked.filter(a=>a.pri===4).length;
+  const el2=document.getElementById('ALM_P2');
+  const el3=document.getElementById('ALM_P3');
+  const el4=document.getElementById('ALM_P4');
+  const elOK=document.getElementById('ALM_OK');
+  if(el2){el2.style.display=p2?'inline':'none';if(p2)document.getElementById('ALM_P2_N').textContent=p2;}
+  if(el3){el3.style.display=p3?'inline':'none';if(p3)document.getElementById('ALM_P3_N').textContent=p3;}
+  if(el4){el4.style.display=p4?'inline':'none';if(p4)document.getElementById('ALM_P4_N').textContent=p4;}
+  if(elOK) elOK.style.display=(!p2&&!p3&&!p4)?'inline':'none';
+  document.querySelector('.topbar').style.borderBottom=p2?'2px solid var(--p2)':p3?'2px solid var(--p3)':'1px solid var(--border)';
+}
+
+function rendGen(){
+  rendCfgSummary();
+  const all=MOTORS.filter(m=>m.st==='run'&&MD[m.id]).flatMap(m=>MD[m.id].flat());
+  const ws=all.map(b=>wSt(b.mm,'run'));
+  const offC=MOTORS.filter(m=>m.st==='off'&&MD[m.id]).flatMap(m=>MD[m.id].flat()).length;
+  const total=MOTORS.reduce((a,m)=>a+(m.phases||3)*(m.brushPerPhase||5),0);
+  document.getElementById('G_TOT').textContent=total;
+  document.getElementById('G_GRN').textContent=ws.filter(s=>s==='neu').length;
+  document.getElementById('G_YEL').textContent=ws.filter(s=>s==='yw').length;
+  document.getElementById('G_RED').textContent=ws.filter(s=>s==='rd').length+offC;
+  document.getElementById('G_MOTOR_COUNT').textContent=MOTORS.length+' motores';
+  document.getElementById('SV_UL').textContent=Math.round(ulMm());
+
+  document.getElementById('G_MTBL').innerHTML=MOTORS.map(m=>{
+    const s=mSum(m);
+    const ts=tSt(s.maxT,m.st),bs=bSt(s.minB,m.st);
+    const clr=x=>x==='rd'?'var(--p2)':x==='yw'?'var(--p3)':'var(--txt2)';
+    const bfcls=x=>x==='rd'?'rd':x==='yw'?'yw':'neu';
+    const ab=m.st==='off'?'—':
+      (s.nRed>0?'<span class="bdg rd">'+s.nRed+' P2</span> ':'')+(s.nYel>0?'<span class="bdg yw">'+s.nYel+' P3</span>':'')||
+      '<span style="font-size:9px;color:var(--txt3)">Sin alarmas</span>';
+    const ph=getPhases(m);
+    return '<tr><td><strong style="font-family:var(--fd)">'+m.id+'</strong> <span style="font-size:9px;color:var(--txt3)">'+m.type+' '+ph.length+'F×'+(m.brushPerPhase||5)+'</span></td>'
+      +'<td class="num" style="color:'+clr(s.ws)+'">'+( m.st==='off'?'—':fmt1(s.avg)+' mm')+'</td>'
+      +'<td><div class="bw"><div class="bg"><div class="bf '+bfcls(s.ws)+'" style="width:'+s.wp+'%"></div></div><span class="bp" style="color:'+clr(s.ws)+'">'+s.wp+'%</span></div></td>'
+      +'<td class="num" style="color:'+clr(ts)+'">'+(m.st==='off'?'—':s.maxT+'°C')+'</td>'
+      +'<td class="num" style="color:'+clr(bs)+'">'+(m.st==='off'?'—':s.minB+'%')+'</td>'
+      +'<td>'+ab+'</td>'
+      +'<td><button class="btn" onclick="showDet(\''+m.id+'\')"><i class="ti ti-eye"></i></button></td></tr>';
+  }).join('');
+  rendAlrts();updTrG();
+}
+
+function rendAlrts(){
+  const alarms=getAlarms();
+  updAlarmBar();
+  const box=document.getElementById('G_ALRT');
+  if(!alarms.length){
+    box.innerHTML='<div style="font-size:9px;color:var(--txt3);padding:4px 0;text-transform:uppercase;letter-spacing:.4px"><i class="ti ti-circle-check" style="color:var(--ok)"></i> Sin alarmas activas</div>';
+    return;
+  }
+  const priLbl={1:'P1',2:'P2',3:'P3',4:'P4'};
+  const shown=alarms.slice(0,8);
+  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'
+    +'<span style="font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px">'+alarms.length+' alarma'+(alarms.length>1?'s':'')+' activa'+(alarms.length>1?'s':'')+' · '+(alarms.filter(a=>a.acked).length)+' reconocidas</span>'
+    +'<button class="btn" style="font-size:8px;padding:2px 7px" onclick="ackAll()">Reconocer todas</button>'
+    +'</div>'
+    +shown.map(a=>{
+      const opacity=a.acked?'0.4':'1';
+      return '<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 8px;border-left:3px solid '+a.col+';background:'+(a.acked?'transparent':'rgba(0,0,0,.2)')+';border-radius:2px;margin-bottom:3px;opacity:'+opacity+'">'
+        +'<div style="min-width:24px;font-size:9px;font-weight:700;font-family:var(--fd);color:'+a.col+';margin-top:1px">'+priLbl[a.pri]+'</div>'
+        +'<div style="flex:1"><div style="font-size:11px;color:var(--txt1)"><strong>'+a.loc+'</strong> — '+a.msg+'</div>'
+        +'<div style="font-size:9px;color:var(--txt2);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">'+a.action+'</div></div>'
+        +(!a.acked?'<button class="btn" style="font-size:8px;padding:1px 6px;flex-shrink:0" onclick="ackAlarm(\''+a.id+'\')">ACK</button>':'<span style="font-size:8px;color:var(--txt3);text-transform:uppercase;letter-spacing:.3px;flex-shrink:0">ACK</span>')
+        +'</div>';
+    }).join('')
+    +(alarms.length>8?'<div style="font-size:9px;color:var(--txt2);padding:3px 8px;text-transform:uppercase;letter-spacing:.4px">+ '+(alarms.length-8)+' alarmas más</div>':'');
+}
+
+function buildMSel(){
+  const sel=document.getElementById('G_MSEL');sel.innerHTML='';
+  MOTORS.filter(m=>m.st==='run').forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.id;sel.appendChild(o);});
+  sel.addEventListener('change',updTrG);
+}
+function updTrG(){
+  const m=MOTORS.find(x=>x.id===document.getElementById('G_MSEL').value)||MOTORS[0];
+  if(!HIST[m.id]) return;
+  const data=[...HIST[m.id]],labels=data.map((_,i)=>'C-'+(i+1));
+  const ty=+(NOM*THY).toFixed(1),tr=+(NOM*THR).toFixed(1);
+  if(updTrG._lastKey===dataKey&&chG) return;
+  updTrG._lastKey=dataKey;
+  if(chG) chG.destroy();
+  chG=new Chart(document.getElementById('G_TRCH'),{type:'line',
+    data:{labels,datasets:[
+      {label:'mm',data,borderColor:'var(--neu)',backgroundColor:'rgba(75,85,99,.15)',tension:.3,pointRadius:2,fill:true},
+      {label:'Alerta',data:Array(data.length).fill(ty),borderColor:'var(--p3)',borderDash:[4,3],pointRadius:0,borderWidth:1},
+      {label:'Crítico',data:Array(data.length).fill(tr),borderColor:'var(--p2)',borderDash:[4,3],pointRadius:0,borderWidth:1},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{min:0,max:NOM+10,grid:{color:'rgba(55,65,81,.5)'},ticks:{font:{size:9},color:'#7a8290'}},x:{grid:{color:'rgba(55,65,81,.3)'},ticks:{font:{size:9},color:'#7a8290',autoSkip:true,maxTicksLimit:10}}}}
+  });
+}
+
+// ── DETALLE ───────────────────────────────────────────────────────────────────
+function showDet(id){
+  CUR=MOTORS.find(x=>x.id===id);FILTER=null;
+  document.getElementById('VGEN').style.display='none';
+  document.getElementById('VDET').style.display='block';
+  document.getElementById('TTL').textContent='Motor '+CUR.id+' — Detalle';
+  document.getElementById('SUB').textContent=CUR.type+' · '+getPhases(CUR).length+' fases · '+(CUR.brushPerPhase||5)+' escobillas/fase';
+  document.getElementById('BREAD').textContent='General / '+CUR.id;
+  const hfph=document.getElementById('HF_PH');
+  hfph.innerHTML='<option value="">Todas las fases</option>';
+  getPhases(CUR).forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent='Fase '+p;hfph.appendChild(o);});
+  switchTab('est');
+}
+function showGen(){
+  CUR=null;FILTER=null;
+  document.getElementById('VGEN').style.display='block';
+  document.getElementById('VDET').style.display='none';
+  updTopbar();
+}
+function switchTab(t){
+  CURTAB=t;FILTER=null;
+  ['est','mnt','hst'].forEach(k=>{
+    document.getElementById('TAB_'+k.toUpperCase()).className='tab'+(k===t?' on':'');
+    document.getElementById('V'+k.toUpperCase()).style.display=k===t?'block':'none';
+  });
+  if(t==='est') rendDet();
+  else if(t==='mnt') rendMnt();
+  else rendHist();
+}
+
+function rendDet(){
+  const m=CUR;if(!m||!MD[m.id]) return;
+  const ph=getPhases(m);
+  const brushes=MD[m.id].flat();
+  const ws=brushes.map(b=>wSt(b.mm,m.st));
+  const maxT=Math.max(...brushes.map(b=>b.temp));
+  const minB=Math.min(...brushes.map(b=>b.batt));
+  const bpf=m.brushPerPhase||5;
+  document.getElementById('D_TOT').textContent=ph.length*bpf;
+  document.getElementById('D_GRN').textContent=ws.filter(s=>s==='neu').length;
+  document.getElementById('D_YEL').textContent=ws.filter(s=>s==='yw').length;
+  document.getElementById('D_RED').textContent=ws.filter(s=>s==='rd').length;
+  const tm=document.getElementById('D_TMX');
+  tm.textContent=m.st==='off'?'—':maxT+'°C';
+  tm.className='vl '+tSt(maxT,m.st);
+  const bm=document.getElementById('D_BMN');
+  bm.textContent=m.st==='off'?'—':minB+'%';
+  bm.className='vl '+bSt(minB,m.st);
+
+  CARDS=[];
+  const grid=document.getElementById('D_PHGRID');
+  grid.innerHTML='';
+  grid.style.gridTemplateColumns='repeat('+ph.length+',1fr)';
+
+  ph.forEach((phName,pi)=>{
+    const phase=MD[m.id][pi];
+    const aM=Math.round(phase.reduce((a,x)=>a+x.mm,0)/phase.length);
+    const aT=Math.round(phase.reduce((a,x)=>a+x.temp,0)/phase.length);
+    const aB=Math.round(phase.reduce((a,x)=>a+x.batt,0)/phase.length);
+    const ps=wSt(aM,m.st);
+    const phDiv=document.createElement('div');phDiv.className='phc';
+    const hdr=document.createElement('div');hdr.className='pht';
+    hdr.innerHTML='<span>Fase '+phName+'</span><span class="pha '+ps+'">'+fmt1(aM)+' mm · '+aT+'°C · '+aB+'%</span>';
+    phDiv.appendChild(hdr);
+    const brl=document.createElement('div');brl.className='brl';
+
+    phase.forEach((brush,bi)=>{
+      const wsCur=wSt(brush.mm,m.st);
+      const tsCur=tSt(brush.temp,m.st);
+      const bsCur=bSt(brush.batt,m.st);
+      const sig=sigSt(brush.lastSeen);
+
+      const card=document.createElement('div');card.className='brc '+wsCur;
+      const brh=document.createElement('div');brh.className='brh';
+      brh.innerHTML='<span class="brn">ESC '+(bi+1)+'</span><span class="bdg '+wsCur+'">'+stLbl(wsCur)+'</span>';
+      card.appendChild(brh);
+
+      const brm=document.createElement('div');brm.className='brm';
+      brm.innerHTML='<div class="bri"><span class="bril">Desgaste</span>'+(m.st==='off'?'<span class="briv neu">—</span>':wearBar(brush.mm,m.st))+'</div>'
+        +'<div class="bri"><span class="bril">Temperatura</span>'+(m.st==='off'?'<span class="briv neu">—</span>':tempBar(brush.temp,m.st))+'</div>'
+        +'<div class="bri"><span class="bril">Batería</span>'+(m.st==='off'?'<span class="briv neu">—</span>':battBar(brush.batt,m.st))+'</div>';
+      card.appendChild(brm);
+
+      const sigRow=document.createElement('div');
+      sigRow.style.cssText='display:flex;align-items:center;gap:5px;padding-top:5px;border-top:1px solid var(--border);margin-top:2px';
+      sigRow.innerHTML='<i class="ti ti-wifi'+(sig.st==='rd'?'-off':sig.st==='yw'?'-2':'')+'" style="font-size:11px;color:'+sig.color+'"></i>'
+        +'<span style="font-size:9px;color:var(--txt2)">Última señal: <strong style="color:'+sig.color+';font-family:var(--fd)">'+(fmtLastSeen(brush.lastSeen||Date.now()))+'</strong> ('+fmtAgo(sig.hoursAgo)+') · <span style="color:'+sig.color+'">'+sig.label+'</span></span>';
+      card.appendChild(sigRow);
+      brl.appendChild(card);
+      CARDS.push({el:card,ws:wsCur,temp:brush.temp,batt:brush.batt});
+    });
+    phDiv.appendChild(brl);grid.appendChild(phDiv);
+  });
+  applyFilter();updPhCh();updPhTr();rendDetAlrts();
+}
+
+function updPhCh(){
+  const m=CUR;if(!m||!MD[m.id]) return;
+  const ph=getPhases(m);
+  const met=document.getElementById('D_PMET').value;
+  const vals=ph.map((_,pi)=>{const phase=MD[m.id][pi];
+    return met==='wear'?Math.round(phase.reduce((a,b)=>a+b.mm,0)/phase.length):
+           met==='temp'?Math.round(phase.reduce((a,b)=>a+b.temp,0)/phase.length):
+           Math.round(phase.reduce((a,b)=>a+b.batt,0)/phase.length);});
+  let ty,tr,yM,yL;
+  if(met==='wear'){ty=+(NOM*THY).toFixed(0);tr=+(NOM*THR).toFixed(0);yM=NOM+10;yL='mm';}
+  else if(met==='temp'){ty=TTY;tr=TTR;yM=140;yL='°C';}
+  else{ty=TB*2;tr=TB;yM=100;yL='%';}
+  const cols=['#4a9fd4','#7a8290','#e8b84a','#e83c3c'];
+  if(chPh) chPh.destroy();
+  chPh=new Chart(document.getElementById('D_PHCH'),{type:'bar',
+    data:{labels:ph.map(p=>'Fase '+p),datasets:[
+      {label:'Prom',data:vals,backgroundColor:vals.map(v=>met==='wear'?(v/NOM<THR?'var(--p2)':v/NOM<THY?'var(--p3)':'var(--neu)'):met==='temp'?(v>=TTR?'var(--p2)':v>=TTY?'var(--p3)':'var(--neu)'):( v<=TB?'var(--p2)':v<=TB*2?'var(--p3)':'var(--neu)')),borderRadius:0},
+      {label:'A',data:Array(ph.length).fill(ty),type:'line',borderColor:'var(--p3)',borderDash:[4,3],pointRadius:0,borderWidth:1},
+      {label:'C',data:Array(ph.length).fill(tr),type:'line',borderColor:'var(--p2)',borderDash:[4,3],pointRadius:0,borderWidth:1},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{min:0,max:yM,grid:{color:'rgba(55,65,81,.5)'},title:{display:true,text:yL,font:{size:9},color:'#7a8290'},ticks:{font:{size:9},color:'#7a8290'}},x:{grid:{display:false},ticks:{font:{size:10},color:'#7a8290'}}}}
+  });
+}
+
+function updPhTr(){
+  const m=CUR;if(!m||!HIST[m.id]) return;
+  const ph=getPhases(m);
+  const met=document.getElementById('D_TMET').value;
+  const labels=HIST[m.id].map((_,i)=>'C-'+(i+1));
+  const cols=['#4a9fd4','#7a8290','#e8b84a','#e83c3c'];
+  const datasets=ph.map((phName,pi)=>{
+    const aT=Math.round(MD[m.id][pi].reduce((a,b)=>a+b.temp,0)/MD[m.id][pi].length);
+    const data=met==='wear'?HIST[m.id].map(v=>Math.max(0,+(v*(0.9+0.1*pi/2)).toFixed(1))):
+      HIST[m.id].map((_,i)=>Math.max(20,Math.round(aT+(HIST[m.id].length-1-i)*0.6*(pi+1))));
+    return{label:'Fase '+phName,data,borderColor:cols[pi],tension:.3,pointRadius:2,fill:false};
+  });
+  const ty=met==='wear'?+(NOM*THY).toFixed(1):TTY;
+  const tr=met==='wear'?+(NOM*THR).toFixed(1):TTR;
+  datasets.push({label:'A',data:Array(labels.length).fill(ty),borderColor:'var(--p3)',borderDash:[4,3],pointRadius:0,borderWidth:1,fill:false});
+  datasets.push({label:'C',data:Array(labels.length).fill(tr),borderColor:'var(--p2)',borderDash:[4,3],pointRadius:0,borderWidth:1,fill:false});
+  if(chTr) chTr.destroy();
+  chTr=new Chart(document.getElementById('D_TRCH'),{type:'line',data:{labels,datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{min:0,max:met==='wear'?NOM+10:145,grid:{color:'rgba(55,65,81,.5)'},ticks:{font:{size:9},color:'#7a8290'}},x:{grid:{color:'rgba(55,65,81,.3)'},ticks:{font:{size:9},color:'#7a8290',autoSkip:true,maxTicksLimit:10}}}}
+  });
+}
+
+function rendDetAlrts(){
+  const m=CUR;if(!m||!MD[m.id]) return;
+  const ph=getPhases(m);
+  const alarms=getAlarms().filter(a=>a.motorId===m.id);
+  const priLbl={1:'P1',2:'P2',3:'P3',4:'P4'};
+  const clr={1:P1_COL,2:'var(--p2)',3:'var(--p3)',4:'var(--accent)'};
+  document.getElementById('D_ALRT').innerHTML=alarms.length?
+    alarms.map(a=>{
+      const opacity=a.acked?'0.4':'1';
+      return '<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 8px;border-left:3px solid '+clr[a.pri]+';background:'+(a.acked?'transparent':'rgba(0,0,0,.2)')+';border-radius:2px;margin-bottom:3px;opacity:'+opacity+'">'
+        +'<div style="min-width:24px;font-size:9px;font-weight:700;font-family:var(--fd);color:'+clr[a.pri]+';margin-top:1px">'+priLbl[a.pri]+'</div>'
+        +'<div style="flex:1"><div style="font-size:11px;color:var(--txt1)"><strong>'+a.loc+'</strong> — '+a.msg+'</div>'
+        +'<div style="font-size:9px;color:var(--txt2);margin-top:1px;text-transform:uppercase;letter-spacing:.3px">'+a.action+'</div></div>'
+        +(!a.acked?'<button class="btn" style="font-size:8px;padding:1px 6px;flex-shrink:0" onclick="ackAlarm(\''+a.id+'\');rendDetAlrts()">ACK</button>':'<span style="font-size:8px;color:var(--txt3);text-transform:uppercase;flex-shrink:0">ACK</span>')
+        +'</div>';
+    }).join(''):
+    '<div style="font-size:9px;color:var(--txt3);padding:4px 0;text-transform:uppercase;letter-spacing:.4px"><i class="ti ti-circle-check" style="color:var(--ok)"></i> Sin alarmas</div>';
+}
+
+// ── PROYECCIÓN ────────────────────────────────────────────────────────────────
+function rendMnt(){
+  const m=CUR;if(!m||!MD[m.id]) return;
+  const ph=getPhases(m);const today=new Date();const rows=[];
+  MD[m.id].forEach((phase,pi)=>phase.forEach((b,bi)=>{
+    if(m.st==='off') return;
+    const c=combined(b.mm,m.rate,b.batt);
+    const date=new Date(today);date.setDate(date.getDate()+c.days);
+    const lifeRem=Math.max(0,Math.round((b.mm-ulMm())/(NOM-ulMm())*100));
+    const bs=bSt(b.batt,m.st),wUrg=urgCls(c.wd),urg=urgCls(c.days);
+    rows.push({ph:ph[pi],br:bi+1,mm:b.mm,lifeRem,days:c.days,cause:c.cause,date,urg,wUrg,batt:b.batt,bs});
+  }));
+  rows.sort((a,b)=>a.urg==='rd'&&b.urg!=='rd'?-1:b.urg==='rd'&&a.urg!=='rd'?1:a.days-b.days);
+  const inM=(d,off)=>{const s=new Date(today);s.setDate(1);s.setMonth(s.getMonth()+off);const e=new Date(s);e.setMonth(e.getMonth()+1);return d>=s&&d<e;};
+  document.getElementById('M_THIS').textContent=rows.filter(r=>inM(r.date,0)).length;
+  document.getElementById('M_NEXT').textContent=rows.filter(r=>inM(r.date,1)).length;
+  document.getElementById('M_URG').textContent=Math.min(...rows.map(r=>r.days))<=0?'HOY':Math.min(...rows.map(r=>r.days))+'d';
+  document.getElementById('M_AVG').textContent=Math.round(rows.reduce((a,r)=>a+r.lifeRem,0)/rows.length)+'%';
+  const tbl=document.getElementById('M_TBL');tbl.innerHTML='';
+  const thead=tbl.createTHead();const hr=thead.insertRow();
+  ['Fase','Escobilla','Urgencia','Intervención en','Fecha estimada','Longitud actual','Vida útil (%)','Batería (%)'].forEach(h=>{const th=document.createElement('th');th.textContent=h;hr.appendChild(th);});
+  const tbody=tbl.createTBody();
+  rows.forEach(r=>{
+    const tr=tbody.insertRow();
+    const bCol=r.bs==='rd'?'var(--p2)':r.bs==='yw'?'var(--p3)':'var(--txt2)';
+    const bBar='<div style="display:flex;align-items:center;gap:5px"><div style="flex:1;height:4px;background:var(--bg3)"><div style="height:100%;width:'+r.batt+'%;background:'+(r.bs==='rd'?'var(--p2)':r.bs==='yw'?'var(--p3)':'var(--neu)')+'"></div></div><span style="font-size:9px;font-family:var(--fd);color:'+bCol+'">'+r.batt+'%</span></div>';
+    const wBar2='<div style="display:flex;align-items:center;gap:5px"><div style="flex:1;height:4px;background:var(--bg3)"><div style="height:100%;width:'+r.lifeRem+'%;background:'+(r.wUrg==='rd'?'var(--p2)':r.wUrg==='yw'?'var(--p3)':'var(--neu)')+'"></div></div><span style="font-size:9px;font-family:var(--fd);color:var(--txt2)">'+r.lifeRem+'%</span></div>';
+    ['<strong style="font-family:var(--fd)">'+r.ph+'</strong>',
+     r.br,
+     '<span class="bdg '+r.urg+'">'+urgLbl(r.days)+'</span><div class="caus">'+r.cause+'</div>',
+     '<span class="chip '+r.urg+'">'+(r.days<=0?'INMEDIATO':'En '+r.days+'d')+'</span><div class="caus">'+r.cause+'</div>',
+     '<span style="font-size:10px;font-family:var(--fd)">'+fmtDate(r.date)+'</span>',
+     '<span style="font-family:var(--fd);color:'+(r.wUrg==='rd'?'var(--p2)':r.wUrg==='yw'?'var(--p3)':'var(--txt1)')+'">'+fmt1(r.mm)+' mm</span>',
+     wBar2,bBar
+    ].forEach(html=>{const td=tr.insertCell();td.innerHTML=html;});
+  });
+  const months=[];for(let i=0;i<6;i++){const d=new Date(today);d.setDate(1);d.setMonth(d.getMonth()+i);months.push(d);}
+  const mc=months.map(ms=>{const me=new Date(ms);me.setMonth(me.getMonth()+1);return rows.filter(r=>r.date>=ms&&r.date<me).length;});
+  if(chM) chM.destroy();
+  chM=new Chart(document.getElementById('M_CHTM'),{type:'bar',
+    data:{labels:months.map(d=>d.toLocaleDateString('es-CL',{month:'short',year:'2-digit'})),
+      datasets:[{label:'Reemplazos',data:mc,backgroundColor:mc.map((_,i)=>i===0?'var(--p2)':i===1?'var(--p3)':'var(--neu)'),borderRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{min:0,grid:{color:'rgba(55,65,81,.5)'},ticks:{stepSize:1,font:{size:9},color:'#7a8290'}},x:{grid:{display:false},ticks:{font:{size:10},color:'#7a8290'}}}}
+  });
+}
+
+// ── HISTORIAL ─────────────────────────────────────────────────────────────────
+function rendHist(){
+  const m=CUR;if(!m) return;
+  const all=RECS[m.id]||[];
+  const pf=document.getElementById('HF_PH').value,rf=document.getElementById('HF_RE').value;
+  const fil=all.filter(r=>(pf===''||r.phase===pf)&&(rf===''||r.reason===rf));
+  const today=new Date();
+  document.getElementById('H_TOT').textContent=all.length;
+  document.getElementById('H_MON').textContent=all.filter(r=>{const d=new Date(r.date);return d.getMonth()===today.getMonth()&&d.getFullYear()===today.getFullYear();}).length;
+  document.getElementById('H_LST').textContent=all.length?new Date(all[0].date).toLocaleDateString('es-CL',{day:'2-digit',month:'short'}):'—';
+  const tc={};all.forEach(r=>{if(r.tech)tc[r.tech]=(tc[r.tech]||0)+1;});
+  const top=Object.entries(tc).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('H_TEC').textContent=top?top[0].split(' ').pop():'—';
+  const empty=document.getElementById('H_EMPTY'),tbl=document.getElementById('H_TBL'),cs=document.getElementById('H_CHSEC');
+  if(!fil.length){empty.style.display='block';tbl.style.display='none';cs.style.display='none';return;}
+  empty.style.display='none';tbl.style.display='table';cs.style.display='block';
+  const rLbl={programado:'Programado',critico:'Crítico',preventivo:'Preventivo',temperatura:'Temperatura',bateria:'Batería',sin_senal:'Sin señal'};
+  const tLbl={escobilla:'Esc.',sensor:'Sensor',ambos:'Esc.+Sensor'};
+  document.getElementById('H_TBODY').innerHTML=fil.map(r=>'<tr>'
+    +'<td style="font-size:9px;font-family:var(--fd);white-space:nowrap">'+new Date(r.date).toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'})+'</td>'
+    +'<td><strong style="font-family:var(--fd)">'+r.phase+'</strong></td>'
+    +'<td style="font-family:var(--fd)">'+r.brush+'</td>'
+    +'<td><span class="bdg gy" style="font-size:8px">'+(tLbl[r.type]||'Esc.')+'</span></td>'
+    +'<td class="num">'+r.mmOut+' mm</td><td class="num">'+r.mmIn+' mm</td>'
+    +'<td><span class="rb '+r.reason+'">'+(rLbl[r.reason]||r.reason)+'</span></td>'
+    +'<td style="font-size:10px">'+( r.tech||'—')+'</td>'
+    +'<td style="font-size:9px;color:var(--txt2)">'+(r.obs||'—')+'</td></tr>').join('');
+  const months=[];for(let i=5;i>=0;i--){const d=new Date(today);d.setDate(1);d.setMonth(d.getMonth()-i);months.push(d);}
+  const mc=months.map(ms=>{const me=new Date(ms);me.setMonth(me.getMonth()+1);return all.filter(r=>{const d=new Date(r.date);return d>=ms&&d<me;}).length;});
+  if(chH) chH.destroy();
+  chH=new Chart(document.getElementById('H_CHTM'),{type:'bar',
+    data:{labels:months.map(d=>d.toLocaleDateString('es-CL',{month:'short',year:'2-digit'})),datasets:[{label:'Reemplazos',data:mc,backgroundColor:'var(--accent)',borderRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{min:0,grid:{color:'rgba(55,65,81,.5)'},ticks:{stepSize:1,font:{size:9},color:'#7a8290'}},x:{grid:{display:false},ticks:{font:{size:10},color:'#7a8290'}}}}
+  });
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal(){
+  if(!CUR) return;
+  const ph=getPhases(CUR);const bpf=CUR.brushPerPhase||5;
+  const msel=document.getElementById('f-motor');msel.innerHTML='';
+  MOTORS.filter(m=>m.st==='run').forEach(m=>{const o=document.createElement('option');o.value=m.id;o.textContent=m.id;if(m.id===CUR.id)o.selected=true;msel.appendChild(o);});
+  const phsel=document.getElementById('f-phase');phsel.innerHTML='';
+  ph.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;phsel.appendChild(o);});
+  const bsel=document.getElementById('f-brush');bsel.innerHTML='';
+  for(let i=1;i<=bpf;i++){const o=document.createElement('option');o.value=i;o.textContent=i;bsel.appendChild(o);}
+  const tsel=document.getElementById('f-tech');tsel.innerHTML='';
+  TECHS_LIST.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;tsel.appendChild(o);});
+  document.getElementById('f-date').value=new Date().toISOString().slice(0,10);
+  document.getElementById('f-mmin').value=NOM;
+  document.getElementById('f-mmout').value='';document.getElementById('f-obs').value='';
+  document.getElementById('modal').style.display='flex';
+}
+function closeModal(){document.getElementById('modal').style.display='none';}
+function saveRec(){
+  const mid=document.getElementById('f-motor').value;
+  const rec={date:document.getElementById('f-date').value,phase:document.getElementById('f-phase').value,brush:+document.getElementById('f-brush').value,mmOut:+document.getElementById('f-mmout').value||0,mmIn:+document.getElementById('f-mmin').value||NOM,type:document.getElementById('f-type').value,reason:document.getElementById('f-reason').value,tech:document.getElementById('f-tech').value,obs:document.getElementById('f-obs').value.trim()};
+  if(!RECS[mid]) RECS[mid]=[];
+  RECS[mid].unshift(rec);RECS[mid].sort((a,b)=>b.date.localeCompare(a.date));
+  const mo=MOTORS.find(x=>x.id===mid);
+  const pi=getPhases(mo).indexOf(rec.phase);
+  if(pi>=0&&MD[mid]&&MD[mid][pi]&&MD[mid][pi][rec.brush-1]){
+    if(rec.type==='escobilla'||rec.type==='ambos') MD[mid][pi][rec.brush-1].mm=rec.mmIn;
+    if(rec.type==='sensor'||rec.type==='ambos') MD[mid][pi][rec.brush-1].batt=100;
+  }
+  closeModal();rendAll();
+  if(CURTAB!=='hst') switchTab('hst');
+}
+
+// ── EXCEL ─────────────────────────────────────────────────────────────────────
+function exportXLS(){
+  const m=CUR;if(!m||!MD[m.id]) return;
+  const wb=XLSX.utils.book_new();
+  const now=new Date();
+  const ts=now.toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const by=IS_ADMIN?'Administrador':IS_CFG?'Configurador':'Operador';
+  const ph=getPhases(m);
+  const meta=[['Compañía:',PLANT.company||'—'],['Faena:',PLANT.faena||'—'],['Proceso:',PLANT.process||'—'],['Exportado:',ts],['Por:',by],['Motor:',m.id],[]];
+  const e1=[...meta,['Motor','Fase','Escobilla','Long. (mm)','% Nominal','Estado desgaste','Temp (°C)','Estado temp','Batería (%)','Estado batería','Intervención (días)','Causa']];
+  MD[m.id].forEach((phase,pi)=>phase.forEach((b,bi)=>{const c=combined(b.mm,m.rate,b.batt);e1.push([m.id,ph[pi],bi+1,fmt1(b.mm),pct(b.mm,m.st),stLbl(wSt(b.mm,m.st)),b.temp,stLbl(tSt(b.temp,m.st)),b.batt,stLbl(bSt(b.batt,m.st)),c.days<=0?'Inmediato':c.days,c.cause]);}));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(e1),'Estado actual');
+  const e2=[...meta,['Fase','Esc.','Long. actual','Vida útil (%)','Batería (%)','Días desgaste','Días batería','Intervención','Causa','Fecha est.','Urgencia']];
+  MD[m.id].forEach((phase,pi)=>phase.forEach((b,bi)=>{if(m.st==='off') return;const c=combined(b.mm,m.rate,b.batt);const lr=Math.max(0,Math.round((b.mm-ulMm())/(NOM-ulMm())*100));const d=new Date(now);d.setDate(d.getDate()+c.days);e2.push([ph[pi],bi+1,fmt1(b.mm),lr+'%',b.batt+'%',c.wd,c.bd,c.days<=0?'Inmediato':c.days,c.cause,fmtDate(d),urgLbl(c.days)]);}));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(e2),'Proyección');
+  const e3=[...meta,['Fecha','Fase','Esc.','Tipo','Mm ret.','Mm inst.','Motivo','Técnico','Obs.']];
+  (RECS[m.id]||[]).forEach(r=>e3.push([r.date,'Fase '+r.phase,'Esc. '+r.brush,r.type,r.mmOut,r.mmIn,r.reason,r.tech,r.obs]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(e3),'Historial');
+  XLSX.writeFile(wb,'escobillas_'+m.id+'_'+now.toISOString().slice(0,16).replace('T','_').replace(':','')+'.xlsx');
+}
+
+// ── SLIDERS ───────────────────────────────────────────────────────────────────
+document.getElementById('S_NOM').addEventListener('input',function(){NOM=+this.value;document.getElementById('SV_NOM').textContent=NOM;document.getElementById('SV_UL').textContent=Math.round(ulMm());initData();rendAll();});
+document.getElementById('S_THY').addEventListener('input',function(){THY=+this.value/100;document.getElementById('SV_THY').textContent=this.value;rendAll();});
+document.getElementById('S_THR').addEventListener('input',function(){THR=+this.value/100;document.getElementById('SV_THR').textContent=this.value;rendAll();});
+document.getElementById('S_TTY').addEventListener('input',function(){TTY=+this.value;document.getElementById('SV_TTY').textContent=this.value;rendAll();});
+document.getElementById('S_TTR').addEventListener('input',function(){TTR=+this.value;document.getElementById('SV_TTR').textContent=this.value;rendAll();});
+document.getElementById('S_TB').addEventListener('input',function(){TB=+this.value;document.getElementById('SV_TB').textContent=this.value;rendAll();});
+document.getElementById('S_BD').addEventListener('input',function(){BD=+this.value;document.getElementById('SV_BD').textContent=this.value;rendAll();});
+document.getElementById('S_SN').addEventListener('input',function(){SIG_N=+this.value;document.getElementById('SV_SN').textContent=this.value;rendAll();});
+document.getElementById('S_INT').addEventListener('input',function(){SIM_SECS=+this.value*60;document.getElementById('SV_INT').textContent=this.value;if(simOn)startSim();});
+
+Chart.defaults.color='#7a8290';
+Chart.defaults.borderColor='#374151';
+function updTs(){document.getElementById('TS').textContent=new Date().toLocaleString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+// ── MQTT ───────────────────────────────────────────────────────────────────────
+let mqClient=null;
+let mqConnected=false;
+
+function toggleMqttPanel(){
+  const p=document.getElementById('MQTT_PANEL');
+  p.style.display=p.style.display==='none'?'block':'none';
+}
+
+function mqttConnect(){
+  const host=document.getElementById('MQ_HOST').value.trim()||'localhost';
+  const port=parseInt(document.getElementById('MQ_PORT').value)||9001;
+  const topic=document.getElementById('MQ_TOPIC').value.trim()||'wila/sensores';
+  const url='ws://'+host+':'+port+'/mqtt';
+  mqttSetStatus('connecting','Conectando...','var(--p3)');document.getElementById('MQ_LAST').textContent='Intentando ws://'+(document.getElementById('MQ_HOST').value)+':'+(document.getElementById('MQ_PORT').value);
+  try{
+    if(mqClient){try{mqClient.end(true);}catch(e){}}
+    mqClient=mqtt.connect(url,{connectTimeout:5000,reconnectPeriod:0,clientId:'dashboard_'+Math.random().toString(16).slice(2,8)});
+    mqClient.on('connect',()=>{
+      mqConnected=true;
+      mqClient.subscribe(topic+'/#',{qos:0});
+      mqClient.subscribe(topic,{qos:0});
+      mqttSetStatus('ok','MQTT OK','var(--ok)');
+      document.getElementById('MQ_BTN_CONN').style.display='none';
+      document.getElementById('MQ_BTN_DISC').style.display='inline-flex';
+      showToast('MQTT conectado a '+host+':'+port);
+    });
+    mqClient.on('message',(t,payload)=>{
+      document.getElementById('MQ_LAST').textContent='RAW: '+payload.toString();
+      mqttHandleMessage(t,payload.toString());
+    });
+    mqClient.on('error',e=>{
+      mqttSetStatus('error','Error MQTT','var(--p2)');
+      showToast('Error MQTT: '+e.message);
+    });
+    mqClient.on('close',()=>{
+      if(mqConnected){mqConnected=false;mqttSetStatus('off','Desconectado','var(--txt3)');}
+    });
+  }catch(e){mqttSetStatus('error','Error','var(--p2)');showToast('Error al conectar: '+e.message);}
+}
+
+function mqttDisconnect(){
+  if(mqClient){try{mqClient.end();}catch(e){}}
+  mqClient=null;mqConnected=false;
+  mqttSetStatus('off','MQTT off','var(--txt3)');
+  document.getElementById('MQ_BTN_CONN').style.display='inline-flex';
+  document.getElementById('MQ_BTN_DISC').style.display='none';
+  showToast('MQTT desconectado');
+}
+
+function mqttSetStatus(st,label,color){
+  const ico=document.getElementById('MQTT_ICO');
+  const txt=document.getElementById('MQTT_ST');
+  const chip=document.getElementById('MQTT_CHIP');
+  txt.textContent=label;txt.style.color=color;
+  ico.style.color=color;
+  chip.style.borderColor=(st==='ok'?'var(--ok)':st==='connecting'?'var(--p3)':st==='error'?'var(--p2)':'var(--border)');
+}
+
+function mqttHandleMessage(topic,raw){
+  // Actualizar label último mensaje
+  const ts=new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  document.getElementById('MQ_LAST').textContent='['+ts+'] '+topic+' → '+raw;
+  try{
+    const data=JSON.parse(raw);
+    const m=MOTORS.find(x=>x.id==='MAQUETA');
+    if(!m) return;
+    if(!MD['MAQUETA']) MD['MAQUETA']=[[]];
+    if(!MD['MAQUETA'][0]) MD['MAQUETA'][0]=[];
+    if(!MD['MAQUETA'][0][0]) MD['MAQUETA'][0][0]={mm:NOM,temp:25,batt:100,lastSeen:Date.now()};
+    const b=MD['MAQUETA'][0][0];
+    // Acepta mm, temp, batt en el JSON. También acepta longitud, temperatura, bateria
+    if(data.mm!==undefined){const raw=+data.mm;b.mm=Math.max(0,Math.round((55-raw)*NOM/55*10)/10);}
+    if(data.longitud!==undefined) b.mm=+data.longitud;
+    if(data.temp!==undefined) b.temp=+data.temp;
+    if(data.temperatura!==undefined) b.temp=+data.temperatura;
+    if(data.batt!==undefined) b.batt=+data.batt;
+    if(data.bateria!==undefined) b.batt=+data.bateria;
+    if(data.battery!==undefined) b.batt=+data.battery;
+    b.lastSeen=Date.now();
+    // Si el motor MAQUETA estaba off, activarlo
+    if(m.st==='off') m.st='run';
+    // Solo redibujar si algún valor cambió
+    const newKey=b.mm+'|'+b.temp+'|'+b.batt;
+    if(mqttHandleMessage._lastKey!==newKey){
+      mqttHandleMessage._lastKey=newKey;
+      rendAll();
+    }
+  }catch(e){/* JSON inválido, ignorar */}
+}
+
+// Resaltar visualmente la fila MAQUETA en la tabla
+const _origRendGen=rendGen;
+// Patch rendGen para destacar MAQUETA
+const _patchedRendGen=function(){
+  _origRendGen.call(this,...arguments);
+  // Destacar fila MAQUETA
+  const rows=document.querySelectorAll('#G_MTBL tr');
+  rows.forEach(r=>{
+    if(r.querySelector('strong')&&r.querySelector('strong').textContent==='MAQUETA'){
+      r.style.background='rgba(74,159,212,0.06)';
+      r.style.borderLeft='3px solid var(--accent)';
+    }
+  });
+};
+// No podemos redefinir const, así que aplicamos el patch en rendAll
+const _origRendAll=rendAll;
+
+updTopbar();initData();buildMSel();rendGen();updTs();setInterval(updTs,60000);startSim();
+window.addEventListener('load',()=>{
+  document.getElementById('MQ_HOST').value='localhost';
+  document.getElementById('MQ_PORT').value='9001';
+  document.getElementById('MQ_TOPIC').value='wila/sensores';
+  setTimeout(()=>mqttConnect(),2000);
+});
+
+// ── MAQUETA live badge & row highlight ────────────────────────────────────────
+// After every rendGen, apply MAQUETA row style and add LIVE badge
+const _mqObserver=new MutationObserver(()=>{
+  document.querySelectorAll('#G_MTBL tr').forEach(r=>{
+    const strong=r.querySelector('td strong');
+    if(strong&&strong.textContent.trim()==='MAQUETA'){
+      r.style.outline='1px solid rgba(74,159,212,0.3)';
+      r.style.background='rgba(74,159,212,0.04)';
+      // Ensure badge exists
+      if(!r.querySelector('.maqueta-live-badge')){
+        const td=r.querySelector('td');
+        if(td&&!td.querySelector('.maqueta-live-badge')){
+          const badge=document.createElement('span');
+          badge.className='maqueta-live-badge';
+          badge.style.cssText='display:inline-flex;align-items:center;gap:3px;margin-left:6px;font-size:8px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:.4px;border:1px solid var(--accent);padding:0 4px;border-radius:2px;background:rgba(74,159,212,.08)';
+          badge.innerHTML='<span style="width:5px;height:5px;border-radius:50%;background:var(--accent);display:inline-block;animation:mqpulse 1.2s ease-in-out infinite"></span>MQTT';
+          td.appendChild(badge);
+        }
+      }
+    }
+  });
+});
+_mqObserver.observe(document.getElementById('G_MTBL'),{childList:true,subtree:true});
+
+// Pulse animation
+const _mqStyle=document.createElement('style');
+_mqStyle.textContent='@keyframes mqpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(0.7)}}';
+document.head.appendChild(_mqStyle);
+
+// Detener simulación para MAQUETA (no desgastar datos reales con sim)
+const _origSimCycle=simCycle;
+
+</script>
+</body>
+</html>

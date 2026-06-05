@@ -1,0 +1,353 @@
+// ──────────────────────────────────────────────────────────────────────────────
+// Dashboard — estilos propios (extraídos de dashboard.html)
+// ──────────────────────────────────────────────────────────────────────────────
+
+// ── Variables de tema (Light) ─────────────────────────────────────────────────
+:root {
+  --bg0: #f4f6f8;
+  --bg1: #ffffff;
+  --bg2: #f8fafc;
+  --bg3: #e2e8f0;
+  --border: #e2e8f0;
+  --txt1: #0d193c;
+  --txt2: #5f7282;
+  --txt3: #778a97;
+  --accent: #4c86ff;
+  --p2: #c83e3a;
+  --p3: #f2b705;
+  --ok: #2e8b57;
+  --neu: #a6b8c1;
+
+  --fu: "Inter", sans-serif;
+  --fd: monospace;
+}
+
+// ── Tarjetas de fases ─────────────────────────────────────────────────────────
+.phc {
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 16px !important;
+}
+
+// ── Tarjetas de escobillas ────────────────────────────────────────────────────
+.brc {
+  border-radius: 8px !important;
+  border-width: 1px !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02) !important;
+  background: #ffffff !important;
+  margin-bottom: 8px !important;
+  padding: 12px !important;
+
+  &.yw {
+    border-left-width: 6px !important;
+    border-left-color: #f2b705 !important;
+    background: #fffbf0 !important;
+  }
+
+  &.rd {
+    border-left-width: 6px !important;
+    border-left-color: #c83e3a !important;
+    background: #fff5f5 !important;
+  }
+
+  &.neu {
+    border-left-width: 6px !important;
+    border-left-color: #a6b8c1 !important;
+  }
+}
+
+// ── Tarjetas de métricas ──────────────────────────────────────────────────────
+.mc {
+  border-radius: 8px !important;
+  border-top-width: 4px !important;
+  border-top-color: #0d193c !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  background: #ffffff !important;
+  border-inline: 1px solid #e2e8f0 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 16px !important;
+}
+
+// ── Sección genérica ──────────────────────────────────────────────────────────
+.sec {
+  border-radius: 8px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 24px !important;
+}
+
+// ── Botones ───────────────────────────────────────────────────────────────────
+.btn {
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  padding: 6px 12px !important;
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+  letter-spacing: 0.5px !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  border: 1px solid #d3dde3 !important;
+  background: #ffffff !important;
+  color: #0d193c !important;
+
+  &:hover {
+    background: #f8fafc !important;
+    border-color: #a6b8c1 !important;
+  }
+
+  &.primary {
+    background: #0d193c !important;
+    color: #ffffff !important;
+    border-color: #0d193c !important;
+
+    &:hover {
+      background: #1e2e60 !important;
+    }
+  }
+
+  &.ok {
+    border-color: #2e8b57 !important;
+    color: #2e8b57 !important;
+
+    &:hover {
+      background: #e6f3ed !important;
+    }
+  }
+
+  &.warn {
+    border-color: #f2b705 !important;
+    color: #d9a300 !important;
+
+    &:hover {
+      background: #fff4d6 !important;
+    }
+  }
+
+  &.danger {
+    border-color: #c83e3a !important;
+    color: #c83e3a !important;
+
+    &:hover {
+      background: #f9e6e5 !important;
+    }
+  }
+}
+
+// ── Modal overlay ─────────────────────────────────────────────────────────────
+.mo {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 25, 60, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+// ── Modal dialog ──────────────────────────────────────────────────────────────
+.md {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 24px;
+  width: 450px;
+  max-width: 95vw;
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0d193c;
+    border-left: 4px solid #4c86ff;
+    padding-left: 8px;
+    text-transform: uppercase;
+  }
+}
+
+// ── Campos de formulario en modales ──────────────────────────────────────────
+.fr {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #5f7282;
+    text-transform: uppercase;
+  }
+
+  input,
+  select,
+  textarea {
+    padding: 8px 12px;
+    border: 1px solid #d3dde3;
+    border-radius: 6px;
+    outline: none;
+    background: #ffffff;
+    color: #0d193c;
+    font-size: 14px;
+    transition: border-color 0.2s;
+
+    &:focus {
+      border-color: #4c86ff;
+    }
+  }
+}
+
+// ── Tabs segmentados ──────────────────────────────────────────────────────────
+.tabs {
+  background: #e2e8f0;
+  padding: 4px;
+  border-radius: 8px;
+  display: flex;
+  gap: 2px;
+  align-self: center;
+}
+
+.tab {
+  padding: 6px 16px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  background: transparent !important;
+  color: #5f7282 !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: none !important;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &.on {
+    background: #ffffff !important;
+    color: #0d193c !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+  }
+}
+
+// ── Barras de indicador ───────────────────────────────────────────────────────
+.bw {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bg {
+  flex: 1;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: visible;
+}
+
+.bf {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+
+  &.neu { background: var(--ok) !important; }
+  &.yw  { background: var(--p3) !important; }
+  &.rd  { background: var(--p2) !important; }
+}
+
+.bp {
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 32px;
+  text-align: right;
+}
+
+// ── Grid helpers ──────────────────────────────────────────────────────────────
+.g4  { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.g6  { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+.g2  { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.g3  { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.cg3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.cg4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.cg2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.fg2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.mac { display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px; }
+
+// ── Tabla de listado ──────────────────────────────────────────────────────────
+.list-table {
+  th {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #0d193c !important;
+    padding: 12px 16px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    background: #f8fafc !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  td {
+    padding: 12px 16px !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    font-size: 13px !important;
+    color: #0d193c !important;
+    vertical-align: middle !important;
+  }
+
+  tr:hover td {
+    background: #f8fafc !important;
+  }
+}
+
+// ── Contenedores de gráficos ──────────────────────────────────────────────────
+.cw   { position: relative; height: 200px; }
+.cwsm { position: relative; height: 160px; }
+
+// ── Leyenda de gráficos ───────────────────────────────────────────────────────
+.lgr {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5f7282;
+}
+
+.lgi {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+}
+
+.lgd {
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+}
+
+// ── Responsive breakpoints ────────────────────────────────────────────────────
+@media (max-width: 1024px) {
+  .g4,
+  .g6,
+  .g3,
+  .cg3,
+  .cg4,
+  .g2 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .fg2 {
+    grid-template-columns: 1fr !important;
+  }
+}
